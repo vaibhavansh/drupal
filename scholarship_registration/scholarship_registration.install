@@ -1,0 +1,147 @@
+<?php
+
+use Drupal\user\Entity\Role;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+
+/**
+ * Implements hook_requirements().
+ */
+function scholarship_registration_requirements($phase) {
+    if ($phase == 'install') {
+        $requirements = [];
+        if (!\Drupal::moduleHandler()->moduleExists('captcha')) {
+            $requirements['scholarship_registration_captcha'] = [
+                'title' => t('Captcha module required'),
+                'value' => t('Not installed'),
+                'description' => t('The CAPTCHA module must be enabled before installing Scholarship Registration.'),
+                'severity' => REQUIREMENT_ERROR,
+            ];
+        }
+        return $requirements;
+    }
+}
+
+/**
+ * Implements hook_install().
+ */
+function scholarship_registration_install() {
+    // Ensure CAPTCHA module is enabled.
+    if (!\Drupal::moduleHandler()->moduleExists('captcha')) {
+        throw new \Drupal\Core\Extension\ModuleHandlerException('Captcha module is required.');
+    }
+
+    // Add user roles.
+    _scholarship_registration_add_roles();
+
+    // Create custom fields.
+    _scholarship_registration_create_fields();
+}
+
+/**
+ * Adds custom roles with predefined machine names where necessary.
+ */
+function _scholarship_registration_add_roles() {
+    // Define roles with their respective machine names.
+    $roles = [
+        'csr' => 'CSR Admin',
+        'selection_committee' => 'Selection committee',
+        'alumni' => 'Alumni',
+        'volunteer' => 'Volunteer',
+        'beneficiary' => 'Beneficiary',
+        'finance' => 'Finance',
+        'trustee' => 'Trustee',
+    ];
+
+    foreach ($roles as $machine_name => $label) {
+        // Check if the role already exists.
+        if (!Role::load($machine_name)) {
+            // Create the role with the predefined machine name and label.
+            Role::create([
+                'id' => $machine_name,
+                'label' => $label,
+            ])->save();
+            \Drupal::messenger()->addMessage(t('Role %label (%id) created.', [
+                '%label' => $label,
+                '%id' => $machine_name,
+            ]));
+        } else {
+            \Drupal::messenger()->addMessage(t('Role %label (%id) already exists. Skipping creation.', [
+                '%label' => $label,
+                '%id' => $machine_name,
+            ]), 'status');
+        }
+    }
+}
+
+/**
+ * Creates custom user fields: Date of Birth, Unique ID.
+ */
+function _scholarship_registration_create_fields() {
+    $fields = [
+        'field_date_of_birth' => [
+            'type' => 'datetime',
+            'label' => 'Date of Birth',
+        ],
+        'field_unique_id' => [
+            'type' => 'string',
+            'label' => 'Unique ID',
+            'settings' => ['max_length' => 50],
+        ],
+    ];
+
+    foreach ($fields as $field_name => $field_info) {
+        // Check and create field storage.
+        if (!FieldStorageConfig::loadByName('user', $field_name)) {
+            FieldStorageConfig::create([
+                'field_name' => $field_name,
+                'entity_type' => 'user',
+                'type' => $field_info['type'],
+                'settings' => $field_info['settings'] ?? [],
+            ])->save();
+            \Drupal::messenger()->addMessage(t('Field storage %field created.', ['%field' => $field_name]));
+        } else {
+            \Drupal::messenger()->addMessage(t('Field storage %field already exists. Skipping creation.', ['%field' => $field_name]), 'status');
+        }
+
+        // Check and create field instance.
+        if (!FieldConfig::loadByName('user', 'user', $field_name)) {
+            FieldConfig::create([
+                'field_name' => $field_name,
+                'entity_type' => 'user',
+                'bundle' => 'user',
+                'label' => $field_info['label'],
+                'required' => FALSE,
+            ])->save();
+            \Drupal::messenger()->addMessage(t('Field %field created for user bundle.', ['%field' => $field_name]));
+        } else {
+            \Drupal::messenger()->addMessage(t('Field %field already exists in user bundle. Skipping creation.', ['%field' => $field_name]), 'status');
+        }
+    }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function scholarship_registration_uninstall() {
+    // Optionally remove roles and fields if desired.
+    // Uncomment the following to remove roles and fields upon uninstallation.
+
+    /*
+    $roles = ['alumni', 'volunteer', 'beneficiary'];
+    foreach ($roles as $role_id) {
+        if ($role = Role::load($role_id)) {
+            $role->delete();
+            \Drupal::messenger()->addMessage(t('Role %role deleted.', ['%role' => $role_id]));
+        }
+    }
+
+    $fields = ['field_date_of_birth', 'field_unique_id'];
+    foreach ($fields as $field_name) {
+        if ($field_storage = FieldStorageConfig::loadByName('user', $field_name)) {
+            $field_storage->delete();
+            \Drupal::messenger()->addMessage(t('Field %field deleted.', ['%field' => $field_name]));
+        }
+    }
+    */
+}

@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Implements hook_help().
+ */
+function scholarship_registration_help($route_name) {
+  switch ($route_name) {
+    case 'help.page.scholarship_registration':
+      return t('Custom module for handling scholarship registration forms.');
+  }
+}

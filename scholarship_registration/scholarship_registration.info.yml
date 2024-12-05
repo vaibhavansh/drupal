@@ -1,0 +1,8 @@
+name: 'Scholarship Registration'
+type: module
+description: 'Module to register Beneficiary and Volunteer users for scholarship services.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - drupal:captcha
+  - drupal:user

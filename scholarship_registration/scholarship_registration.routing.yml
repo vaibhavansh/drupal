@@ -1,0 +1,41 @@
+scholarship_registration.beneficiary_form:
+  path: '/register/beneficiary'
+  defaults:
+    _form: '\Drupal\scholarship_registration\Form\BeneficiaryForm'
+    _title: 'Beneficiary Registration'
+  requirements:
+    _permission: 'access content'
+
+scholarship_registration.volunteer_alumni_form:
+  path: '/register/volunteer'
+  defaults:
+    _form: '\Drupal\scholarship_registration\Form\VolunteerAlumniForm'
+    _title: 'Volunteer or Alumni Registration'
+  requirements:
+    _permission: 'access content'
+
+scholarship_registration.beneficiary_success:
+  path: '/register/beneficiary/success'
+  defaults:
+    _controller: '\Drupal\scholarship_registration\Controller\BeneficiaryRegistrationController::successPage'
+    _title: 'Beneficiary Registration Success'
+  requirements:
+    _permission: 'access content'
+
+scholarship_registration.volunteer_success:
+  path: '/register/volunteer/success'
+  defaults:
+    _controller: '\Drupal\scholarship_registration\Controller\VolunteerRegistrationController::successPage'
+    _title: 'Volunteer Registration Success'
+  requirements:
+    _permission: 'access content'
+
+scholarship_registration.form:
+  path: '/scholarship-registration'
+  defaults:
+    _form: '\Drupal\scholarship_registration\Form\ScholarshipRegistrationForm'
+    _title: 'Scholarship Registration Form'
+  requirements:
+    _role: 'beneficiary'
+
+
