@@ -1,0 +1,7 @@
+name: 'Scholarship Beneficiary Profile'
+type: module
+description: 'Provides a multi-step form with progress bar.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - drupal:system

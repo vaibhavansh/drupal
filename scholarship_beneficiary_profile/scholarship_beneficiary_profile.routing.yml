@@ -1,0 +1,63 @@
+scholarship_beneficiary_profile.step1:
+  path: '/step1'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step1Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step2:
+  path: '/step2'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step2Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step3:
+  path: '/step3'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step3Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step4:
+  path: '/step4'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step4Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step5:
+  path: '/step5'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step5Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step6:
+  path: '/step6'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step6Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.step7:
+  path: '/step7'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\Step7Form'
+    _title: ''
+  requirements:
+    _permission: 'access content'
+
+scholarship_beneficiary_profile.completion:
+  path: '/completion'
+  defaults:
+    _form: '\Drupal\scholarship_beneficiary_profile\Form\CompletionForm'
+    _title: ''
+  requirements:
+    _permission: 'access content'
