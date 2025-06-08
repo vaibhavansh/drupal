@@ -1,0 +1,24 @@
+<?php
+
+$csvFilePath = '/var/www/html/data.csv'; // Update this to your actual path
+
+if (!file_exists($csvFilePath) || !is_readable($csvFilePath)) {
+    die("CSV file not found or not readable.");
+}
+
+$data = [];
+
+if (($handle = fopen($csvFilePath, 'r')) !== false) {
+    $header = fgetcsv($handle); // get the header row
+    while (($row = fgetcsv($handle)) !== false) {
+        $data[] = array_combine($header, $row); // combine header and row
+    }
+    fclose($handle);
+}
+
+// Output the CSV data
+echo "<pre>";
+print_r($data);
+echo "</pre>";
+
+?>
