@@ -1,7 +1,11 @@
 <?php
 
+$original = [
+    [0 => "Course", 1 => "Stream"],
+    [0 => "Diploma", 1 => "Diploma - Automobile"],
+    [0 => "Diploma", 1 => "Test Diploma - Automobile"],
+];
 
-<?php
 
 $data = [
     ["Course", "Stream"],
