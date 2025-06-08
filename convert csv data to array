@@ -1,5 +1,28 @@
 <?php
 
+
+<?php
+
+$data = [
+    ["Course", "Stream"],
+    ["Diploma", "Diploma - Automobile"]
+];
+
+// Convert using array_combine
+if (count($data) >= 2) {
+    $result = array_combine($data[0], $data[1]);
+} else {
+    $result = []; // Fallback if not enough data
+}
+
+// Output result
+echo "<pre>";
+print_r($result);
+echo "</pre>";
+
+
+
+
 $csvFilePath = '/var/www/html/data.csv'; // Update to your path
 
 if (!file_exists($csvFilePath) || !is_readable($csvFilePath)) {
