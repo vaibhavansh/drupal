@@ -1,6 +1,8 @@
+namespace Drupal\your_module\Form;
+
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use GuzzleHttp\Exception\RequestException;
 
 class BankDetailsForm extends FormBase {
 
@@ -9,47 +11,53 @@ class BankDetailsForm extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
-
-    $form['ifsc_code'] = [
+    // IFSC input field with AJAX
+    $form['field_ifsc_code'] = [
       '#type' => 'textfield',
       '#title' => $this->t('IFSC Code'),
       '#ajax' => [
-        'callback' => '::fetchBankDetails',
+        'callback' => '::validateIfscAjax',
         'event' => 'change',
         'wrapper' => 'bank-details-wrapper',
       ],
-      '#attributes' => [
-        'maxlength' => 11,
-      ],
+      '#maxlength' => 11,
     ];
 
+    // Wrapper container for AJAX response
     $form['bank_details'] = [
       '#type' => 'container',
       '#attributes' => ['id' => 'bank-details-wrapper'],
     ];
 
-    $form['bank_details']['bank_name'] = [
+    // Bank Name field
+    $form['bank_details']['field_bank_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Bank Name'),
-      '#default_value' => $form_state->get('bank_name') ?? '',
+      '#default_value' => $form_state->get('field_bank_name') ?? '',
       '#attributes' => ['readonly' => 'readonly'],
     ];
 
-    $form['bank_details']['branch'] = [
+    // Branch Name field
+    $form['bank_details']['field_branch_name'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Branch'),
-      '#default_value' => $form_state->get('branch') ?? '',
+      '#title' => $this->t('Branch Name'),
+      '#default_value' => $form_state->get('field_branch_name') ?? '',
       '#attributes' => ['readonly' => 'readonly'],
     ];
 
-    $form['bank_details']['address'] = [
+    // Address (optional)
+    $form['bank_details']['field_bank_address'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Address'),
-      '#default_value' => $form_state->get('address') ?? '',
+      '#title' => $this->t('Bank Address'),
+      '#default_value' => $form_state->get('field_bank_address') ?? '',
       '#attributes' => ['readonly' => 'readonly'],
     ];
 
-    $form['submit'] = [
+    // Submit button
+    $form['actions'] = [
+      '#type' => 'actions',
+    ];
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Submit'),
     ];
@@ -57,32 +65,53 @@ class BankDetailsForm extends FormBase {
     return $form;
   }
 
-  public function fetchBankDetails(array &$form, FormStateInterface $form_state) {
-    $ifsc = $form_state->getValue('ifsc_code');
-    $response = [];
+  /**
+   * AJAX callback to fetch and return bank details section.
+   */
+  public function validateIfscAjax(array &$form, FormStateInterface $form_state) {
+    $ifsc = $form_state->getValue('field_ifsc_code') ?? '';
 
+    // Fetch and set bank details
+    $this->fetchBankDetails($form_state, $ifsc);
+
+    // Return only the part of the form that should be updated via AJAX
+    return $form['bank_details'];
+  }
+
+  /**
+   * Fetches bank details from Razorpay IFSC API and sets in form_state.
+   */
+  public function fetchBankDetails(FormStateInterface $form_state, $ifsc) {
     if (!empty($ifsc)) {
       $client = \Drupal::httpClient();
       try {
-        $request = $client->get('https://ifsc.razorpay.com/' . $ifsc);
-        if ($request->getStatusCode() == 200) {
-          $result = json_decode($request->getBody(), true);
-          $form_state->set('bank_name', $result['BANK'] ?? '');
-          $form_state->set('branch', $result['BRANCH'] ?? '');
-          $form_state->set('address', $result['ADDRESS'] ?? '');
+        $response = $client->get('https://ifsc.razorpay.com/' . $ifsc);
+        if ($response->getStatusCode() === 200) {
+          $result = json_decode($response->getBody(), true);
+          $form_state->set('field_bank_name', $result['BANK'] ?? '');
+          $form_state->set('field_branch_name', $result['BRANCH'] ?? '');
+          $form_state->set('field_bank_address', $result['ADDRESS'] ?? '');
         }
-      } catch (\Exception $e) {
-        \Drupal::messenger()->addError('Invalid IFSC or API error.');
-        $form_state->set('bank_name', '');
-        $form_state->set('branch', '');
-        $form_state->set('address', '');
+      } catch (RequestException $e) {
+        \Drupal::messenger()->addError(t('Invalid IFSC code or API error.'));
+        $form_state->set('field_bank_name', '');
+        $form_state->set('field_branch_name', '');
+        $form_state->set('field_bank_address', '');
       }
     }
-
-    return $form;
   }
 
+  /**
+   * Submit handler.
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // Handle your form submission
+    $ifsc = $form_state->getValue('field_ifsc_code');
+    $bank_name = $form_state->get('field_bank_name');
+    $branch = $form_state->get('field_branch_name');
+
+    \Drupal::messenger()->addStatus("You entered IFSC: $ifsc");
+    \Drupal::messenger()->addStatus("Bank: $bank_name, Branch: $branch");
+
+    // You can now store or process this data as needed
   }
 }
