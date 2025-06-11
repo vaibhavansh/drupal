@@ -1,0 +1,29 @@
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Deletes given vocabularies and all their terms.
+ */
+function delete_multiple_vocabularies() {
+  $vocabularies = ['state', 'district', 'taluka'];
+
+  foreach ($vocabularies as $vocabulary_id) {
+    // Load and delete all terms in the vocabulary
+    $terms = \Drupal::entityTypeManager()
+      ->getStorage('taxonomy_term')
+      ->loadByProperties(['vid' => $vocabulary_id]);
+
+    foreach ($terms as $term) {
+      $term->delete();
+    }
+
+    // Load and delete the vocabulary itself
+    $vocabulary = Vocabulary::load($vocabulary_id);
+    if ($vocabulary) {
+      $vocabulary->delete();
+      \Drupal::messenger()->addStatus("Vocabulary '$vocabulary_id' and all its terms deleted.");
+    } else {
+      \Drupal::messenger()->addError("Vocabulary '$vocabulary_id' not found.");
+    }
+  }
+}
