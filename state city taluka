@@ -1,0 +1,72 @@
+State City Taluka
+
+
+// Store created term IDs
+$state_terms = [];
+$district_terms = [];
+
+foreach ($data as $row) {
+  // Create or load State term
+  if (!isset($state_terms[$row->state])) {
+    $existing_state_terms = \Drupal::entityTypeManager()
+      ->getStorage('taxonomy_term')
+      ->loadByProperties([
+        'name' => $row->state,
+        'vid' => 'state',
+      ]);
+
+    if (!empty($existing_state_terms)) {
+      $state = reset($existing_state_terms);
+    } else {
+      $state = Term::create([
+        'name' => $row->state,
+        'vid' => 'state',
+      ]);
+      $state->save();
+    }
+
+    $state_terms[$row->state] = $state->id();
+  }
+
+  // Create or load District term
+  $district_key = $row->state . '-' . $row->district;
+  if (!isset($district_terms[$district_key])) {
+    $existing_district_terms = \Drupal::entityTypeManager()
+      ->getStorage('taxonomy_term')
+      ->loadByProperties([
+        'name' => $row->district,
+        'vid' => 'district',
+      ]);
+
+    if (!empty($existing_district_terms)) {
+      $district = reset($existing_district_terms);
+    } else {
+      $district = Term::create([
+        'name' => $row->district,
+        'vid' => 'district',
+        'field_reference_state' => ['target_id' => $state_terms[$row->state]],
+      ]);
+      $district->save();
+    }
+
+    $district_terms[$district_key] = $district->id();
+  }
+
+  // Check if Taluka already exists
+  $existing_taluka_terms = \Drupal::entityTypeManager()
+    ->getStorage('taxonomy_term')
+    ->loadByProperties([
+      'name' => $row->taluka,
+      'vid' => 'taluka',
+    ]);
+
+  if (empty($existing_taluka_terms)) {
+    // Create Taluka term
+    $taluka = Term::create([
+      'name' => $row->taluka,
+      'vid' => 'taluka',
+      'field_reference_district' => ['target_id' => $district_terms[$district_key]],
+    ]);
+    $taluka->save();
+  }
+}
