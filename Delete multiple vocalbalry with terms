@@ -1,29 +1,100 @@
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\taxonomy\Entity\Term;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
 
 /**
- * Deletes given vocabularies and all their terms.
+ * Deletes and recreates state/district/taluka vocabularies
+ * and adds proper reference fields:
+ * - district → state
+ * - taluka → district
  */
-function delete_multiple_vocabularies() {
-  $vocabularies = ['state', 'district', 'taluka'];
+function reset_vocabularies_with_references() {
+  $vocabularies = [
+    'state' => 'State',
+    'district' => 'District',
+    'taluka' => 'Taluka',
+  ];
 
-  foreach ($vocabularies as $vocabulary_id) {
-    // Load and delete all terms in the vocabulary
+  // Step 1: Delete and recreate all vocabularies
+  foreach ($vocabularies as $vid => $name) {
+    // Delete terms
     $terms = \Drupal::entityTypeManager()
       ->getStorage('taxonomy_term')
-      ->loadByProperties(['vid' => $vocabulary_id]);
+      ->loadByProperties(['vid' => $vid]);
 
     foreach ($terms as $term) {
       $term->delete();
     }
 
-    // Load and delete the vocabulary itself
-    $vocabulary = Vocabulary::load($vocabulary_id);
-    if ($vocabulary) {
-      $vocabulary->delete();
-      \Drupal::messenger()->addStatus("Vocabulary '$vocabulary_id' and all its terms deleted.");
-    } else {
-      \Drupal::messenger()->addError("Vocabulary '$vocabulary_id' not found.");
+    // Delete vocabulary
+    if ($existing = Vocabulary::load($vid)) {
+      $existing->delete();
     }
+
+    // Recreate vocabulary
+    Vocabulary::create([
+      'vid' => $vid,
+      'name' => $name,
+      'description' => "Auto-created vocabulary: $name",
+    ])->save();
   }
+
+  // Step 2: Create reference field: district → state
+  if (!FieldStorageConfig::loadByName('taxonomy_term', 'field_reference_state')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_reference_state',
+      'entity_type' => 'taxonomy_term',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'taxonomy_term',
+      ],
+      'cardinality' => 1,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('taxonomy_term', 'district', 'field_reference_state')) {
+    FieldConfig::create([
+      'field_name' => 'field_reference_state',
+      'entity_type' => 'taxonomy_term',
+      'bundle' => 'district',
+      'label' => 'Reference State',
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [
+          'target_bundles' => ['state' => 'state'],
+        ],
+      ],
+    ])->save();
+  }
+
+  // Step 3: Create reference field: taluka → district
+  if (!FieldStorageConfig::loadByName('taxonomy_term', 'field_reference_district')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_reference_district',
+      'entity_type' => 'taxonomy_term',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'taxonomy_term',
+      ],
+      'cardinality' => 1,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('taxonomy_term', 'taluka', 'field_reference_district')) {
+    FieldConfig::create([
+      'field_name' => 'field_reference_district',
+      'entity_type' => 'taxonomy_term',
+      'bundle' => 'taluka',
+      'label' => 'Reference District',
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [
+          'target_bundles' => ['district' => 'district'],
+        ],
+      ],
+    ])->save();
+  }
+
+  \Drupal::messenger()->addStatus("All vocabularies reset and reference fields created.");
 }
