@@ -12,3 +12,11 @@ function assignBeneficiariesToCsr(array $beneficiaries, array $csrs): array {
 
   return $assignments;
 }
+$beneficiaries = getUsersByRole('beneficiary'); // Returns User[] (58 users)
+$csrs = getUsersByRole('csr');                  // Returns User[] (20 users)
+
+$assigned = assignBeneficiariesToCsr($beneficiaries, $csrs);
+
+foreach ($assigned as $csr_id => $beneficiary_ids) {
+  echo "CSR $csr_id is assigned beneficiaries: " . implode(', ', $beneficiary_ids) . "<br>";
+}
