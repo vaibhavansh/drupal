@@ -129,4 +129,43 @@ class UserAssignmentController extends ControllerBase {
     $node->save();
   }
 
+  use Drupal\node\Entity\Node;
+
+/**
+ * Updates a node's assignee, assigner, and beneficiary fields.
+ *
+ * @param int $nid
+ *   The node ID to update.
+ * @param int|null $assignee_uid
+ *   The user ID of the assignee (optional).
+ * @param int|null $assigner_uid
+ *   The user ID of the assigner (optional).
+ * @param int|null $beneficiary_uid
+ *   The user ID of the beneficiary (optional).
+ *
+ * @return bool
+ *   TRUE if the node was updated, FALSE otherwise.
+ */
+function update_custom_node($nid, $assignee_uid = NULL, $assigner_uid = NULL, $beneficiary_uid = NULL): bool {
+  $node = Node::load($nid);
+
+  if (!$node || $node->bundle() !== 'beneficiary_application_status') {
+    return FALSE;
+  }
+
+  if ($assignee_uid !== NULL) {
+    $node->set('field_assignee_uid', ['target_id' => $assignee_uid]);
+  }
+  if ($assigner_uid !== NULL) {
+    $node->set('field_assigner_uid', ['target_id' => $assigner_uid]);
+  }
+  if ($beneficiary_uid !== NULL) {
+    $node->set('field_beneficiary_uid', ['target_id' => $beneficiary_uid]);
+  }
+
+  $node->save();
+  return TRUE;
+}
+
+
 }
