@@ -1,22 +1,19 @@
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Controller\ControllerBase;
+use Drupal\user\Entity\User;
 
-class MyController extends ControllerBase {
+/**
+ * Get all active users by a given role.
+ *
+ * @param string $role_id
+ *   The machine name of the role (e.g., 'administrator').
+ *
+ * @return \Drupal\user\Entity\User[]
+ *   An array of user entities.
+ */
+function getUsersByRole(string $role_id): array {
+  $user_ids = \Drupal::entityQuery('user')
+    ->condition('status', 1)
+    ->condition('roles', $role_id)
+    ->execute();
 
-  public function myMethod() {
-    $current_user = $this->currentUser(); // Gets the current logged-in user (AccountInterface)
-
-    // Check if user has role "administrator"
-    if (in_array('administrator', $current_user->getRoles())) {
-      return [
-        '#markup' => $this->t('You are an Administrator.')
-      ];
-    }
-    else {
-      return [
-        '#markup' => $this->t('You are NOT an Administrator.')
-      ];
-    }
-  }
-
+  return User::loadMultiple($user_ids);
 }
