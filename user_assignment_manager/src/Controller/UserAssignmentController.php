@@ -1,13 +1,35 @@
 <?php
 
+/**
+ * @file
+ * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
+ *
+ * Assigns beneficiary users to volunteer users via round-robin logic
+ * and creates a content node to record the assignment.
+ *
+ * @author Vaibahv Barga
+ * @date 2025-06-12
+ */
+
 namespace Drupal\user_assignment_manager\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\node\Entity\Node;
 use Drupal\user\Entity\User;
 
+/**
+ * Class UserAssignmentController
+ *
+ * Handles the logic for assigning beneficiaries to volunteers.
+ */
 class UserAssignmentController extends ControllerBase {
 
+  /**
+   * Assigns beneficiaries to volunteers in a round-robin manner.
+   *
+   * @return array
+   *   A renderable array indicating assignment result.
+   */
   public function assignVolunteer() {
     $beneficiaries = $this->getUsersByRole('beneficiary');
     $volunteers = $this->getUsersByRole('volunteer');
@@ -31,6 +53,15 @@ class UserAssignmentController extends ControllerBase {
     return ['#markup' => 'Assignment complete. ' . count($beneficiaries) . ' beneficiaries assigned.'];
   }
 
+  /**
+   * Get all active users by a given role.
+   *
+   * @param string $role_id
+   *   The machine name of the role (e.g., 'beneficiary').
+   *
+   * @return \Drupal\user\Entity\User[]
+   *   An array of user entities with only the given role.
+   */
   private function getUsersByRole(string $role_id): array {
     $user_ids = \Drupal::entityQuery('user')
       ->condition('status', 1)
@@ -50,6 +81,17 @@ class UserAssignmentController extends ControllerBase {
     return $filtered_users;
   }
 
+  /**
+   * Assign beneficiaries to volunteers using round-robin logic.
+   *
+   * @param array $beneficiaries
+   *   List of beneficiary user entities.
+   * @param array $volunteers
+   *   List of volunteer user entities.
+   *
+   * @return array
+   *   Associative array [volunteer_id => array of beneficiary_ids].
+   */
   private function assignBeneficiariesToVolunteers(array $beneficiaries, array $volunteers): array {
     $assignments = [];
     $volunteerCount = count($volunteers);
@@ -64,6 +106,16 @@ class UserAssignmentController extends ControllerBase {
     return $assignments;
   }
 
+  /**
+   * Create a node of type 'beneficiary_application_status'.
+   *
+   * @param int $assignee_uid
+   *   The user ID of the volunteer (assignee).
+   * @param int $assigner_uid
+   *   The user ID of the one assigning (admin).
+   * @param int $beneficiary_uid
+   *   The user ID of the beneficiary being assigned.
+   */
   private function createCustomNode($assignee_uid, $assigner_uid, $beneficiary_uid): void {
     $node = Node::create([
       'type' => 'beneficiary_application_status',
