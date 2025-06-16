@@ -5,9 +5,9 @@
  * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
  *
  * Assigns beneficiary users to volunteer users via round-robin logic
- * and creates a content node to record the assignment.
+ * and updates a content node to record the assignment.
  *
- * @author Vaibahv Barga
+ * @author Vaibahv Bargal
  * @date 2025-06-12
  */
 
@@ -42,11 +42,16 @@ class UserAssignmentController extends ControllerBase {
     }
 
     $assigned = $this->assignBeneficiariesToVolunteers($beneficiaries, $volunteers);
+
+    // Debug output for checking assignment
+    dd($assigned);
+
     $assigner_uid = $this->currentUser()->id();
 
     foreach ($assigned as $volunteer_uid => $beneficiary_ids) {
       foreach ($beneficiary_ids as $beneficiary_uid) {
-        $this->createCustomNode($volunteer_uid, $assigner_uid, $beneficiary_uid);
+        // Uncomment the below line to update nodes when ready
+        // $this->updateCustomNode($nid, $volunteer_uid, $assigner_uid, $beneficiary_uid);
       }
     }
 
@@ -60,7 +65,7 @@ class UserAssignmentController extends ControllerBase {
    *   The machine name of the role (e.g., 'beneficiary').
    *
    * @return \Drupal\user\Entity\User[]
-   *   An array of user entities with only the given role.
+   *   An array of user entities.
    */
   private function getUsersByRole(string $role_id): array {
     $user_ids = \Drupal::entityQuery('user')
@@ -69,16 +74,7 @@ class UserAssignmentController extends ControllerBase {
       ->accessCheck(FALSE)
       ->execute();
 
-    $users = User::loadMultiple($user_ids);
-    $filtered_users = [];
-
-    foreach ($users as $user) {
-      if (count($user->getRoles()) === 1 && in_array($role_id, $user->getRoles())) {
-        $filtered_users[] = $user;
-      }
-    }
-
-    return $filtered_users;
+    return User::loadMultiple($user_ids);
   }
 
   /**
@@ -107,65 +103,39 @@ class UserAssignmentController extends ControllerBase {
   }
 
   /**
-   * Create a node of type 'beneficiary_application_status'.
+   * Updates a node's assignee, assigner, and beneficiary fields.
    *
-   * @param int $assignee_uid
-   *   The user ID of the volunteer (assignee).
-   * @param int $assigner_uid
-   *   The user ID of the one assigning (admin).
-   * @param int $beneficiary_uid
-   *   The user ID of the beneficiary being assigned.
+   * @param int $nid
+   *   The node ID to update.
+   * @param int|null $assignee_uid
+   *   The user ID of the assignee (optional).
+   * @param int|null $assigner_uid
+   *   The user ID of the assigner (optional).
+   * @param int|null $beneficiary_uid
+   *   The user ID of the beneficiary (optional).
+   *
+   * @return bool
+   *   TRUE if the node was updated, FALSE otherwise.
    */
-  private function createCustomNode($assignee_uid, $assigner_uid, $beneficiary_uid): void {
-    $node = Node::create([
-      'type' => 'beneficiary_application_status',
-      'title' => 'Assignment for User ' . $beneficiary_uid,
-      'field_assignee_uid' => ['target_id' => $assignee_uid],
-      'field_assigner_uid' => ['target_id' => $assigner_uid],
-      'field_beneficiary_uid' => ['target_id' => $beneficiary_uid],
-      'status' => 1,
-    ]);
+  private function updateCustomNode(int $nid, $assignee_uid = NULL, $assigner_uid = NULL, $beneficiary_uid = NULL): bool {
+    $node = Node::load($nid);
+
+    if (!$node || $node->bundle() !== 'beneficiary_application_status') {
+      return FALSE;
+    }
+
+    if ($assignee_uid !== NULL) {
+      $node->set('field_assignee_uid', ['target_id' => $assignee_uid]);
+    }
+    if ($assigner_uid !== NULL) {
+      $node->set('field_assigner_uid', ['target_id' => $assigner_uid]);
+    }
+    if ($beneficiary_uid !== NULL) {
+      $node->set('field_beneficiary_uid', ['target_id' => $beneficiary_uid]);
+    }
 
     $node->save();
+    return TRUE;
   }
-
-  use Drupal\node\Entity\Node;
-
-/**
- * Updates a node's assignee, assigner, and beneficiary fields.
- *
- * @param int $nid
- *   The node ID to update.
- * @param int|null $assignee_uid
- *   The user ID of the assignee (optional).
- * @param int|null $assigner_uid
- *   The user ID of the assigner (optional).
- * @param int|null $beneficiary_uid
- *   The user ID of the beneficiary (optional).
- *
- * @return bool
- *   TRUE if the node was updated, FALSE otherwise.
- */
-function update_custom_node($nid, $assignee_uid = NULL, $assigner_uid = NULL, $beneficiary_uid = NULL): bool {
-  $node = Node::load($nid);
-
-  if (!$node || $node->bundle() !== 'beneficiary_application_status') {
-    return FALSE;
-  }
-
-  if ($assignee_uid !== NULL) {
-    $node->set('field_assignee_uid', ['target_id' => $assignee_uid]);
-  }
-  if ($assigner_uid !== NULL) {
-    $node->set('field_assigner_uid', ['target_id' => $assigner_uid]);
-  }
-  if ($beneficiary_uid !== NULL) {
-    $node->set('field_beneficiary_uid', ['target_id' => $beneficiary_uid]);
-  }
-
-  $node->save();
-  return TRUE;
-}
-
 
 }
