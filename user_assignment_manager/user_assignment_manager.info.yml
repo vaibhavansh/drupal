@@ -1,0 +1,8 @@
+name: 'User Assignment Manager'
+type: module
+description: 'Assigns beneficiary users to CSR or volunteer users.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - node
+  - user

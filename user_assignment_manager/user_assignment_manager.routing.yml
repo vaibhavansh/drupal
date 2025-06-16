@@ -1,0 +1,7 @@
+user_assignment_manager.assign:
+  path: '/admin/user-assignment/run'
+  defaults:
+    _controller: '\Drupal\user_assignment_manager\Controller\UserAssignmentController::assignVolunteer'
+    _title: 'Assign Beneficiaries'
+  requirements:
+    _permission: 'administer users'
