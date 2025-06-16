@@ -1,22 +1,25 @@
-function assignBeneficiariesToCsr(array $beneficiaries, array $csrs): array {
-  $assignments = [];
+use Drupal\node\Entity\Node;
 
-  $csrCount = count($csrs);
-  $i = 0;
+/**
+ * Create a node and assign user reference fields.
+ */
+function create_custom_node() {
+  // Example values (replace with actual user IDs and content type)
+  $assignee_uid = 5;
+  $assigner_uid = 3;
+  $beneficiary_uid = 12;
 
-  foreach ($beneficiaries as $beneficiary) {
-    $csr_id = $csrs[$i % $csrCount]->id();  // Round-robin assignment
-    $assignments[$csr_id][] = $beneficiary->id();
-    $i++;
-  }
+  // Create the node
+  $node = Node::create([
+    'type' => 'your_content_type_machine_name',
+    'title' => 'Assigned Record',
+    'field_assignee_uid' => ['target_id' => $assignee_uid],
+    'field_assigner_uid' => ['target_id' => $assigner_uid],
+    'field_beneficiary_uid' => ['target_id' => $beneficiary_uid],
+    'status' => 1,
+  ]);
 
-  return $assignments;
-}
-$beneficiaries = getUsersByRole('beneficiary'); // Returns User[] (58 users)
-$csrs = getUsersByRole('csr');                  // Returns User[] (20 users)
+  $node->save();
 
-$assigned = assignBeneficiariesToCsr($beneficiaries, $csrs);
-
-foreach ($assigned as $csr_id => $beneficiary_ids) {
-  echo "CSR $csr_id is assigned beneficiaries: " . implode(', ', $beneficiary_ids) . "<br>";
+  return $node->id(); // Return the newly created node ID
 }
