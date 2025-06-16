@@ -1,19 +1,14 @@
-use Drupal\user\Entity\User;
+function assignBeneficiariesToCsr(array $beneficiaries, array $csrs): array {
+  $assignments = [];
 
-/**
- * Get all active users by a given role.
- *
- * @param string $role_id
- *   The machine name of the role (e.g., 'administrator').
- *
- * @return \Drupal\user\Entity\User[]
- *   An array of user entities.
- */
-function getUsersByRole(string $role_id): array {
-  $user_ids = \Drupal::entityQuery('user')
-    ->condition('status', 1)
-    ->condition('roles', $role_id)
-    ->execute();
+  $csrCount = count($csrs);
+  $i = 0;
 
-  return User::loadMultiple($user_ids);
+  foreach ($beneficiaries as $beneficiary) {
+    $csr_id = $csrs[$i % $csrCount]->id();  // Round-robin assignment
+    $assignments[$csr_id][] = $beneficiary->id();
+    $i++;
+  }
+
+  return $assignments;
 }
