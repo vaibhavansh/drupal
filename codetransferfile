@@ -1,0 +1,22 @@
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Controller\ControllerBase;
+
+class MyController extends ControllerBase {
+
+  public function myMethod() {
+    $current_user = $this->currentUser(); // Gets the current logged-in user (AccountInterface)
+
+    // Check if user has role "administrator"
+    if (in_array('administrator', $current_user->getRoles())) {
+      return [
+        '#markup' => $this->t('You are an Administrator.')
+      ];
+    }
+    else {
+      return [
+        '#markup' => $this->t('You are NOT an Administrator.')
+      ];
+    }
+  }
+
+}
