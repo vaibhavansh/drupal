@@ -86,6 +86,8 @@ $results = \Drupal::database()->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
       }
     }
 
+    \Drupal::messenger()->addMessage(count($beneficiaries) . ' beneficiaries assigned successfully.');
+    return new RedirectResponse('/admin/dashboard'); // Change to your desired path
     return ['#markup' => 'Assignment complete. ' . count($beneficiaries) . ' beneficiaries assigned.'];
   }
 
