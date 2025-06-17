@@ -1,15 +1,13 @@
 <?php
-$sql = "SELECT u.uid AS uid, ufqid.field_unique_id_value AS UniqueID, u.name AS username, u.mail AS email, 'ss' AS benificaiaryname, n.nid, n.title, s.field_form_status_value, bu.field_benificiary_uid_value FROM node_field_data AS n INNER JOIN node__field_form_status AS s ON n.nid = s.entity_id INNER JOIN node__field_benificiary_uid AS bu ON n.nid = bu.entity_id INNER JOIN users_field_data AS u ON u.uid = bu.field_benificiary_uid_value LEFT JOIN user__roles AS r ON r.entity_id = u.uid LEFT JOIN user__field_unique_id AS ufqid ON ufqid.entity_id = u.uid WHERE n.type = 'beneficiary_application_status' AND s.field_form_status_value = 1";
-$results = \Drupal::database()->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
 
 /**
  * @file
  * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
  *
  * Assigns beneficiary users to volunteer users via round-robin logic
- * and updates a content node to record the assignment.
+ * and updates the corresponding content nodes.
  *
- * @author Vaibahv Bargal
+ * @author Vaibhav Bargal
  * @date 2025-06-12
  */
 
@@ -22,38 +20,59 @@ use Drupal\user\Entity\User;
 /**
  * Class UserAssignmentController
  *
- * Handles the logic for assigning beneficiaries to volunteers.
+ * Handles assignment of beneficiaries to volunteers and updates nodes accordingly.
  */
 class UserAssignmentController extends ControllerBase {
 
   /**
-   * Assigns beneficiaries to volunteers in a round-robin manner.
+   * Assigns beneficiaries to volunteers in a round-robin manner and updates nodes.
    *
    * @return array
    *   A renderable array indicating assignment result.
    */
   public function assignVolunteer() {
-    $beneficiaries = $this->getUsersByRole('beneficiary');
-    $volunteers = $this->getUsersByRole('volunteer');
+    $sql = "
+  SELECT 
+    u.uid AS uid,
+    ufqid.field_unique_id_value AS UniqueID,
+    u.name AS username,
+    u.mail AS email,
+    'ss' AS benificaiaryname,
+    n.nid,
+    n.title,
+    s.field_form_status_value,
+    bu.field_benificiary_uid_value
+  FROM node_field_data AS n
+  INNER JOIN node__field_form_status AS s ON n.nid = s.entity_id
+  INNER JOIN node__field_benificiary_uid AS bu ON n.nid = bu.entity_id
+  INNER JOIN users_field_data AS u ON u.uid = bu.field_benificiary_uid_value
+  LEFT JOIN user__roles AS r ON r.entity_id = u.uid
+  LEFT JOIN user__field_unique_id AS ufqid ON ufqid.entity_id = u.uid
+  WHERE n.type = 'beneficiary_application_status'
+    AND s.field_form_status_value = 1
+";
 
-    $volunteers = array_filter($volunteers);
-    $volunteers = array_values($volunteers);
+    $results = \Drupal::database()->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+
+    $beneficiaries = [];
+    foreach ($results as $result) {
+      $beneficiaries[$result['uid']] = $result['nid'];
+    }
+
+    $volunteers = $this->getUsersByRole('volunteer');
+    $volunteers = array_values(array_filter($volunteers));
 
     if (empty($volunteers)) {
       return ['#markup' => 'No volunteers found.'];
     }
 
     $assigned = $this->assignBeneficiariesToVolunteers($beneficiaries, $volunteers);
-
-    // Debug output for checking assignment
-    dd($assigned);
-
     $assigner_uid = $this->currentUser()->id();
 
-    foreach ($assigned as $volunteer_uid => $beneficiary_ids) {
-      foreach ($beneficiary_ids as $beneficiary_uid) {
-        // Uncomment the below line to update nodes when ready
-        // $this->updateCustomNode($nid, $volunteer_uid, $assigner_uid, $beneficiary_uid);
+    foreach ($assigned as $volunteer_uid => $nids_uids) {
+      foreach ($nids_uids as $nid_uid) {
+        [$nid, $uid] = explode('_', $nid_uid);
+        $this->updateCustomNode((int) $nid, $volunteer_uid, $assigner_uid);
       }
     }
 
@@ -61,13 +80,13 @@ class UserAssignmentController extends ControllerBase {
   }
 
   /**
-   * Get all active users by a given role.
+   * Loads all active users with a specific role.
    *
    * @param string $role_id
-   *   The machine name of the role (e.g., 'beneficiary').
+   *   The machine name of the role (e.g., 'beneficiary', 'volunteer').
    *
    * @return \Drupal\user\Entity\User[]
-   *   An array of user entities.
+   *   An array of loaded user entities.
    */
   private function getUsersByRole(string $role_id): array {
     $user_ids = \Drupal::entityQuery('user')
@@ -80,24 +99,24 @@ class UserAssignmentController extends ControllerBase {
   }
 
   /**
-   * Assign beneficiaries to volunteers using round-robin logic.
+   * Distributes beneficiaries to volunteers in a round-robin manner.
    *
    * @param array $beneficiaries
-   *   List of beneficiary user entities.
-   * @param array $volunteers
-   *   List of volunteer user entities.
+   *   Array of [uid => nid] mapping.
+   * @param \Drupal\user\Entity\User[] $volunteers
+   *   Array of volunteer user entities.
    *
    * @return array
-   *   Associative array [volunteer_id => array of beneficiary_ids].
+   *   Associative array of assignments: [volunteer_uid => [nid_uid_string, ...]].
    */
   private function assignBeneficiariesToVolunteers(array $beneficiaries, array $volunteers): array {
     $assignments = [];
     $volunteerCount = count($volunteers);
     $i = 0;
 
-    foreach ($beneficiaries as $beneficiary) {
+    foreach ($beneficiaries as $uid => $nid) {
       $volunteer = $volunteers[$i % $volunteerCount];
-      $assignments[$volunteer->id()][] = $beneficiary->id();
+      $assignments[$volunteer->id()][] = "{$nid}_{$uid}";
       $i++;
     }
 
@@ -105,21 +124,19 @@ class UserAssignmentController extends ControllerBase {
   }
 
   /**
-   * Updates a node's assignee, assigner, and beneficiary fields.
+   * Updates a node with assigned assignee and assigner.
    *
    * @param int $nid
    *   The node ID to update.
    * @param int|null $assignee_uid
-   *   The user ID of the assignee (optional).
+   *   UID of the volunteer (assignee).
    * @param int|null $assigner_uid
-   *   The user ID of the assigner (optional).
-   * @param int|null $beneficiary_uid
-   *   The user ID of the beneficiary (optional).
+   *   UID of the assigner (current user).
    *
    * @return bool
-   *   TRUE if the node was updated, FALSE otherwise.
+   *   TRUE if node was successfully updated, FALSE otherwise.
    */
-  private function updateCustomNode(int $nid, $assignee_uid = NULL, $assigner_uid = NULL, $beneficiary_uid = NULL): bool {
+  private function updateCustomNode(int $nid, $assignee_uid = NULL, $assigner_uid = NULL): bool {
     $node = Node::load($nid);
 
     if (!$node || $node->bundle() !== 'beneficiary_application_status') {
@@ -127,13 +144,11 @@ class UserAssignmentController extends ControllerBase {
     }
 
     if ($assignee_uid !== NULL) {
-      $node->set('field_assignee_uid', ['target_id' => $assignee_uid]);
+      $node->set('field_assignee_uid', $assignee_uid);
     }
+
     if ($assigner_uid !== NULL) {
-      $node->set('field_assigner_uid', ['target_id' => $assigner_uid]);
-    }
-    if ($beneficiary_uid !== NULL) {
-      $node->set('field_beneficiary_uid', ['target_id' => $beneficiary_uid]);
+      $node->set('field_assigner_uid', $assigner_uid);
     }
 
     $node->save();
