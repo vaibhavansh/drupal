@@ -31,6 +31,17 @@ class UserAssignmentController extends ControllerBase {
    *   A renderable array indicating assignment result.
    */
   public function assignVolunteer() {
+
+
+    if (
+  $this->currentUser()->hasRole('administrator') || 
+  $this->currentUser()->hasRole('csr')
+) {
+  // User is either admin or CSR — continue script
+} else {
+  // Access denied or exit
+  throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Access denied.');
+}
    $sql = "
   SELECT 
     u.uid AS uid,
