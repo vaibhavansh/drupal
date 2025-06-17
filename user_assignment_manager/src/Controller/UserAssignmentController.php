@@ -1,4 +1,6 @@
 <?php
+$sql = "SELECT u.uid AS uid, ufqid.field_unique_id_value AS UniqueID, u.name AS username, u.mail AS email, 'ss' AS benificaiaryname, n.nid, n.title, s.field_form_status_value, bu.field_benificiary_uid_value FROM node_field_data AS n INNER JOIN node__field_form_status AS s ON n.nid = s.entity_id INNER JOIN node__field_benificiary_uid AS bu ON n.nid = bu.entity_id INNER JOIN users_field_data AS u ON u.uid = bu.field_benificiary_uid_value LEFT JOIN user__roles AS r ON r.entity_id = u.uid LEFT JOIN user__field_unique_id AS ufqid ON ufqid.entity_id = u.uid WHERE n.type = 'beneficiary_application_status' AND s.field_form_status_value = 1";
+$results = \Drupal::database()->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
 
 /**
  * @file
