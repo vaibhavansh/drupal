@@ -1,70 +1,19 @@
-$value = $node->get('field_assignee_uid')->getValue();
-$currentDateTime = date('Y-m-d H:i:s');
-user_assignment_manager/src/Service/UserAssignmentHelper.php
-<?php
+$json1 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:23:22","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
+$json2 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:16:19","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
 
-namespace Drupal\user_assignment_manager\Service;
+$data1 = json_decode($json1, true);
+$data2 = json_decode($json2, true);
 
-/**
- * Provides helper functions for user assignment.
- */
-class UserAssignmentHelper {
+// Merge both under a new array or indexed structure
+$merged = [
+  'logs' => [
+    $data1['steper_2'],
+    $data2['steper_2'],
+  ],
+];
 
-  /**
-   * Example method to greet a user.
-   *
-   * @param string $name
-   *   The name to greet.
-   *
-   * @return string
-   *   The greeting message.
-   */
-  public function greet(string $name): string {
-    return 'Hello, ' . $name;
-  }
+// Convert back to JSON
+$final_json = json_encode($merged, JSON_PRETTY_PRINT);
 
-  /**
-   * Example method to log message.
-   *
-   * @param string $message
-   *   Message to log.
-   */
-  public function log(string $message): void {
-    \Drupal::logger('user_assignment_manager')->notice($message);
-  }
-
-}
-user_assignment_manager/user_assignment_manager.services.yml
-services:
-  user_assignment_manager.helper:
-    class: 'Drupal\user_assignment_manager\Service\UserAssignmentHelper'
-$helper = \Drupal::service('user_assignment_manager.helper');
-echo $helper->greet('Vaibhav');
-
-
-
-use Drupal\node\Entity\Node;
-
-/**
- * Create a node and assign user reference fields.
- */
-function create_custom_node() {
-  // Example values (replace with actual user IDs and content type)
-  $assignee_uid = 5;
-  $assigner_uid = 3;
-  $beneficiary_uid = 12;
-
-  // Create the node
-  $node = Node::create([
-    'type' => 'your_content_type_machine_name',
-    'title' => 'Assigned Record',
-    'field_assignee_uid' => ['target_id' => $assignee_uid],
-    'field_assigner_uid' => ['target_id' => $assigner_uid],
-    'field_beneficiary_uid' => ['target_id' => $beneficiary_uid],
-    'status' => 1,
-  ]);
-
-  $node->save();
-
-  return $node->id(); // Return the newly created node ID
-}
+// Output
+echo $final_json;
