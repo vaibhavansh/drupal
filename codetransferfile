@@ -1,3 +1,4 @@
+$value = $node->get('field_assignee_uid')->getValue();
 user_assignment_manager/src/Service/UserAssignmentHelper.php
 <?php
 
