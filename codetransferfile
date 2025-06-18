@@ -1,4 +1,5 @@
 $value = $node->get('field_assignee_uid')->getValue();
+$currentDateTime = date('Y-m-d H:i:s');
 user_assignment_manager/src/Service/UserAssignmentHelper.php
 <?php
 
