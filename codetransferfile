@@ -1,3 +1,46 @@
+user_assignment_manager/src/Service/UserAssignmentHelper.php
+<?php
+
+namespace Drupal\user_assignment_manager\Service;
+
+/**
+ * Provides helper functions for user assignment.
+ */
+class UserAssignmentHelper {
+
+  /**
+   * Example method to greet a user.
+   *
+   * @param string $name
+   *   The name to greet.
+   *
+   * @return string
+   *   The greeting message.
+   */
+  public function greet(string $name): string {
+    return 'Hello, ' . $name;
+  }
+
+  /**
+   * Example method to log message.
+   *
+   * @param string $message
+   *   Message to log.
+   */
+  public function log(string $message): void {
+    \Drupal::logger('user_assignment_manager')->notice($message);
+  }
+
+}
+user_assignment_manager/user_assignment_manager.services.yml
+services:
+  user_assignment_manager.helper:
+    class: 'Drupal\user_assignment_manager\Service\UserAssignmentHelper'
+$helper = \Drupal::service('user_assignment_manager.helper');
+echo $helper->greet('Vaibhav');
+
+
+
 use Drupal\node\Entity\Node;
 
 /**
