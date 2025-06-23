@@ -1,3 +1,5 @@
+"आप सभी utf8mb4_0900_ai_ci को utf8mb4_general_ci या utf8mb4_unicode_ci से खोजकर और बदलकर बदल सकते हैं।"
+
 $json1 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:23:22","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
 $json2 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:16:19","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
 
