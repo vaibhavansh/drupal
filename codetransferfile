@@ -1,3 +1,52 @@
+user_assignment_manager.single_assign:
+  path: '/admin/assign-users'
+  defaults:
+    _controller: '\Drupal\user_assignment_manager\Controller\UserAssignmentController::singleAssignment'
+    _title: 'Bulk Assign Users'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Url;
+
+/**
+ * Handles bulk user assignment via POST.
+ */
+public function singleAssignment(Request $request) {
+  $selected_uids = $request->request->get('selected_users'); // array
+  $assignee_uid = $request->request->get('assignee_uid');    // single user ID
+
+  if (empty($selected_uids) || empty($assignee_uid)) {
+    \Drupal::messenger()->addError('Please select users and an assignee.');
+    return new RedirectResponse(Url::fromRoute('<front>')->toString());
+  }
+
+  $assigner_uid = $this->currentUser()->id();
+
+  foreach ($selected_uids as $beneficiary_uid) {
+    $nodes = \Drupal::entityTypeManager()
+      ->getStorage('node')
+      ->loadByProperties([
+        'type' => 'beneficiary_application_status',
+        'field_beneficiary_uid' => $beneficiary_uid,
+      ]);
+
+    foreach ($nodes as $node) {
+      $node->set('field_assignee_uid', $assignee_uid);
+      $node->set('field_assigner_uid', $assigner_uid);
+      $node->save();
+    }
+  }
+
+  \Drupal::messenger()->addStatus($this->t('@count users assigned.', ['@count' => count($selected_uids)]));
+  return new RedirectResponse(Url::fromRoute('user_assignment_manager.success')->toString());
+}
+
+
+
 "आप सभी utf8mb4_0900_ai_ci को utf8mb4_general_ci या utf8mb4_unicode_ci से खोजकर और बदलकर बदल सकते हैं।"
 
 $json1 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:23:22","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
