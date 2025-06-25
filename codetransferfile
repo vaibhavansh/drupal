@@ -13,7 +13,17 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Url;
 
 /**
- * Handles bulk user assignment via POST.
+ * Handles POST request to assign multiple beneficiaries to a single assignee (volunteer or CSR).
+ *
+ * This method expects a list of beneficiary user IDs and a single assignee user ID
+ * to be submitted via a POST request. It then updates the corresponding nodes
+ * of type 'beneficiary_application_status' to reflect the assignment.
+ *
+ * @param \Symfony\Component\HttpFoundation\Request $request
+ *   The request object containing POST data: selected_users[] and assignee_uid.
+ *
+ * @return \Symfony\Component\HttpFoundation\RedirectResponse
+ *   A redirect response to the success route with a status message.
  */
 public function singleAssignment(Request $request) {
   $selected_uids = $request->request->get('selected_users'); // array
@@ -40,6 +50,11 @@ public function singleAssignment(Request $request) {
       $node->save();
     }
   }
+
+  \Drupal::messenger()->addStatus($this->t('@count users assigned.', ['@count' => count($selected_uids)]));
+  return new RedirectResponse(Url::fromRoute('user_assignment_manager.success')->toString());
+}
+
 
   \Drupal::messenger()->addStatus($this->t('@count users assigned.', ['@count' => count($selected_uids)]));
   return new RedirectResponse(Url::fromRoute('user_assignment_manager.success')->toString());
