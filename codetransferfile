@@ -1,85 +1,235 @@
-user_assignment_manager.single_assign:
-  path: '/admin/assign-users'
-  defaults:
-    _controller: '\Drupal\user_assignment_manager\Controller\UserAssignmentController::singleAssignment'
-    _title: 'Bulk Assign Users'
-  requirements:
-    _permission: 'access content'
-  methods: [POST]
-
-
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Drupal\Core\Url;
+<?php
 
 /**
- * Handles POST request to assign multiple beneficiaries to a single assignee (volunteer or CSR).
+ * @file
+ * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
  *
- * This method expects a list of beneficiary user IDs and a single assignee user ID
- * to be submitted via a POST request. It then updates the corresponding nodes
- * of type 'beneficiary_application_status' to reflect the assignment.
+ * Provides functionality to assign beneficiaries to volunteers using
+ * single or round-robin assignment methods and updates related nodes.
  *
- * @param \Symfony\Component\HttpFoundation\Request $request
- *   The request object containing POST data: selected_users[] and assignee_uid.
- *
- * @return \Symfony\Component\HttpFoundation\RedirectResponse
- *   A redirect response to the success route with a status message.
+ * @author Vaibhav Bargal
+ * @date 2025-06-12
  */
-public function singleAssignment(Request $request) {
-  $selected_uids = $request->request->get('selected_users'); // array
-  $assignee_uid = $request->request->get('assignee_uid');    // single user ID
 
-  if (empty($selected_uids) || empty($assignee_uid)) {
-    \Drupal::messenger()->addError('Please select users and an assignee.');
-    return new RedirectResponse(Url::fromRoute('<front>')->toString());
+namespace Drupal\user_assignment_manager\Controller;
+
+use Drupal;
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
+use Drupal\user\Entity\User;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+
+/**
+ * Class UserAssignmentController.
+ *
+ * Handles assigning beneficiaries to volunteers/CSRs and updates the relevant nodes.
+ */
+class UserAssignmentController extends ControllerBase {
+
+  /**
+   * The messenger service.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
+   * Constructs a new UserAssignmentController object.
+   *
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger service.
+   */
+  public function __construct(MessengerInterface $messenger) {
+    $this->messenger = $messenger;
   }
 
-  $assigner_uid = $this->currentUser()->id();
+  /**
+   * Assigns multiple beneficiaries to a single assignee (CSR or volunteer).
+   *
+   * This function is triggered via a POST request.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object containing 'selected_users', 'assignee_uid', and 'steps'.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response to the given step route.
+   */
+  public function singleAssignment(Request $request) {
+    $selected_uids = $request->request->get('selected_users');
+    $assignee_uid = $request->request->get('assignee_uid');
+    $steps = $request->request->get('steps');
 
-  foreach ($selected_uids as $beneficiary_uid) {
-    $nodes = \Drupal::entityTypeManager()
-      ->getStorage('node')
-      ->loadByProperties([
-        'type' => 'beneficiary_application_status',
-        'field_beneficiary_uid' => $beneficiary_uid,
-      ]);
-
-    foreach ($nodes as $node) {
-      $node->set('field_assignee_uid', $assignee_uid);
-      $node->set('field_assigner_uid', $assigner_uid);
-      $node->save();
+    if (empty($selected_uids) || empty($assignee_uid)) {
+      $this->messenger->addError('Please select users and an assignee.');
+      return new RedirectResponse(Url::fromRoute($steps)->toString());
     }
+
+    $assigner_uid = $this->currentUser()->id();
+
+    foreach ($selected_uids as $beneficiary_uid) {
+      $nodes = \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->loadByProperties([
+          'type' => 'beneficiary_application_status',
+          'field_beneficiary_uid' => $beneficiary_uid,
+        ]);
+
+      foreach ($nodes as $node) {
+        $node->set('field_assignee_uid', $assignee_uid);
+        $node->set('field_assigner_uid', $assigner_uid);
+        $node->save();
+      }
+    }
+
+    $this->messenger->addStatus($this->t('@count beneficiaries assigned successfully.', ['@count' => count($selected_uids)]));
+    return new RedirectResponse(Url::fromRoute($steps)->toString());
   }
 
-  \Drupal::messenger()->addStatus($this->t('@count users assigned.', ['@count' => count($selected_uids)]));
-  return new RedirectResponse(Url::fromRoute('user_assignment_manager.success')->toString());
+  /**
+   * Automatically assigns beneficiaries to volunteers using round-robin.
+   *
+   * @param string|null $steps
+   *   The step route to redirect to after completion.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
+   *   Redirect or render array.
+   */
+  public function assignVolunteer($steps = NULL) {
+    $user = $this->currentUser();
+
+    if (!($user->hasRole('administrator') || $user->hasRole('csr'))) {
+      throw new AccessDeniedHttpException('Access denied.');
+    }
+
+    $query = <<<SQL
+SELECT u.uid AS uid, ufqid.field_unique_id_value AS UniqueID, u.name AS username, u.mail AS email, 'ss' AS benificaiaryname,
+  n.nid, n.title, s.field_form_status_value, bu.field_benificiary_uid_value
+FROM node_field_data AS n
+  INNER JOIN node__field_form_status AS s ON n.nid = s.entity_id
+  INNER JOIN node__field_benificiary_uid AS bu ON n.nid = bu.entity_id
+  INNER JOIN users_field_data AS u ON u.uid = bu.field_benificiary_uid_value
+  LEFT JOIN user__roles AS r ON r.entity_id = u.uid
+  LEFT JOIN user__field_unique_id AS ufqid ON ufqid.entity_id = u.uid
+WHERE n.type = 'beneficiary_application_status' AND s.field_form_status_value = 1
+SQL;
+
+    $results = \Drupal::database()->query($query)->fetchAll(\PDO::FETCH_ASSOC);
+    $volunteers_users = $this->getUsersByRole(['volunteer']);
+    $volunteers = [];
+
+    if (empty($volunteers_users)) {
+      return ['#markup' => 'No volunteers found.'];
+    }
+
+    if (in_array($steps, ['2', '4'])) {
+      foreach ($volunteers_users as $uid => $volunteer) {
+        if ($volunteer->get('field_csr_member')->value == 1) {
+          $volunteers[$uid] = $volunteer;
+        }
+      }
+    }
+    elseif ($steps === '3') {
+      $volunteers = $volunteers_users;
+    }
+
+    $beneficiaries = [];
+    foreach ($results as $row) {
+      $beneficiaries[$row['uid']] = $row['nid'];
+    }
+
+    $volunteers = array_values(array_filter($volunteers));
+    $assigned = $this->assignBeneficiariesToVolunteers($beneficiaries, $volunteers);
+    $assigner_uid = $this->currentUser()->id();
+
+    foreach ($assigned as $volunteer_uid => $nid_uid_pairs) {
+      foreach ($nid_uid_pairs as $nid_uid) {
+        [$nid, $uid] = explode('_', $nid_uid);
+        $this->updateCustomNode((int) $nid, $volunteer_uid, $assigner_uid);
+      }
+    }
+
+    $this->messenger->addStatus($this->t('@count beneficiaries assigned successfully.', ['@count' => count($beneficiaries)]));
+    return new RedirectResponse(Url::fromRoute('stepers')->toString());
+  }
+
+  /**
+   * Retrieves active users for specific roles.
+   *
+   * @param array $role_ids
+   *   Role machine names.
+   *
+   * @return \Drupal\user\Entity\User[]
+   *   Loaded user entities.
+   */
+  private function getUsersByRole(array $role_ids): array {
+    $user_ids = \Drupal::entityQuery('user')
+      ->condition('status', 1)
+      ->condition('roles', $role_ids, 'IN')
+      ->accessCheck(FALSE)
+      ->execute();
+
+    return User::loadMultiple($user_ids);
+  }
+
+  /**
+   * Distributes beneficiaries to volunteers using round-robin logic.
+   *
+   * @param array $beneficiaries
+   *   Associative array of [uid => nid].
+   * @param \Drupal\user\Entity\User[] $volunteers
+   *   Array of volunteer user entities.
+   *
+   * @return array
+   *   Assignment results as [volunteer_uid => [nid_uid_string, ...]].
+   */
+  private function assignBeneficiariesToVolunteers(array $beneficiaries, array $volunteers): array {
+    $assignments = [];
+    $volunteerCount = count($volunteers);
+    $i = 0;
+
+    foreach ($beneficiaries as $uid => $nid) {
+      $volunteer = $volunteers[$i % $volunteerCount];
+      $assignments[$volunteer->id()][] = "{$nid}_{$uid}";
+      $i++;
+    }
+
+    return $assignments;
+  }
+
+  /**
+   * Updates a beneficiary node with assignment information.
+   *
+   * @param int $nid
+   *   Node ID.
+   * @param int|null $assignee_uid
+   *   Assigned volunteer UID.
+   * @param int|null $assigner_uid
+   *   Assigner UID.
+   *
+   * @return bool
+   *   TRUE if update succeeded, FALSE otherwise.
+   */
+  private function updateCustomNode(int $nid, $assignee_uid = NULL, $assigner_uid = NULL): bool {
+    $node = Node::load($nid);
+
+    if (!$node || $node->bundle() !== 'beneficiary_application_status') {
+      return FALSE;
+    }
+
+    if ($assignee_uid !== NULL) {
+      $node->set('field_assignee_uid', $assignee_uid);
+    }
+
+    if ($assigner_uid !== NULL) {
+      $node->set('field_assigner_uid', $assigner_uid);
+    }
+
+    $node->save();
+    return TRUE;
+  }
+
 }
-
-
-  \Drupal::messenger()->addStatus($this->t('@count users assigned.', ['@count' => count($selected_uids)]));
-  return new RedirectResponse(Url::fromRoute('user_assignment_manager.success')->toString());
-}
-
-
-
-"आप सभी utf8mb4_0900_ai_ci को utf8mb4_general_ci या utf8mb4_unicode_ci से खोजकर और बदलकर बदल सकते हैं।"
-
-$json1 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:23:22","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
-$json2 = '{"steper_2":{"csr":"rubinab@cybage.com","volunteer":"deekshar@cybage.com","beneficiary":"testu@gmail.com","date_time":"2025-06-18 10:16:19","log_message":"CSR Admin (rubinab@cybage.com) Assign Voluneet (deekshar@cybage.com) To Beneficiary (testu@gmail.com)"}}';
-
-$data1 = json_decode($json1, true);
-$data2 = json_decode($json2, true);
-
-// Merge both under a new array or indexed structure
-$merged = [
-  'logs' => [
-    $data1['steper_2'],
-    $data2['steper_2'],
-  ],
-];
-
-// Convert back to JSON
-$final_json = json_encode($merged, JSON_PRETTY_PRINT);
-
-// Output
-echo $final_json;
