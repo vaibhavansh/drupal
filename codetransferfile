@@ -1,3 +1,23 @@
+getTaxonomyByName(23, function(name) {
+  alert(name); // this will correctly show the taxonomy name
+});
+
+function getTaxonomyByName(id, callback) {
+  $.ajax({
+    url: '/taxonomy/' + id, // Replace with your route
+    type: 'GET',
+    success: function(response) {
+      callback(response.name);
+    },
+    error: function(xhr) {
+      console.error('Error:', xhr.responseJSON.message);
+      callback(null);
+    }
+  });
+}
+
+
+
 <?php
 async function getTaxonomyByNameAsync() {
   const response = await fetch('/taxonomy/23');
