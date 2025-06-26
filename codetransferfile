@@ -8,32 +8,49 @@ user_assignment_manager.taxonomy_term_name:
     _permission: 'access content'
     id: \d+  # Only allow numeric IDs
   methods: [GET]
+$.ajax({
+  url: '/taxonomy/23', // Replace 23 with the taxonomy term ID you want
+  type: 'GET',
+  success: function(response) {
+    console.log('Taxonomy Name:', response.name);
+  },
+  error: function(xhr) {
+    console.error('Error:', xhr.responseJSON.message);
+  }
+});
 
-(function ($, Drupal) {
-  Drupal.behaviors.assignmentAjax = {
-    attach: function (context, settings) {
-      $('#ajax-trigger', context).once('assignmentAjax').click(function () {
-        const data = {
-          param: $('#user-input').val()
-        };
 
-        $.ajax({
-          type: 'POST',
-          url: '/user-assignment/ajax-handler', // must match route path
-          data: data,
-          success: function (response) {
-            alert('Processed: ' + response.processed);
-          },
-          error: function () {
-            alert('Something went wrong!');
-          }
-        });
-      });
+
+namespace Drupal\user_assignment_manager\Controller;
+
+use Drupal\taxonomy\Entity\Term;
+use Symfony\Component\HttpFoundation\JsonResponse;
+
+class TaxonomyAjaxController {
+
+  /**
+   * Returns taxonomy term name by ID.
+   *
+   * @param int $id
+   *   The taxonomy term ID.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   The JSON response containing the term name.
+   */
+  public function getTermName($id) {
+    $term = Term::load($id);
+    if ($term) {
+      return new JsonResponse([
+        'status' => 'success',
+        'name' => $term->getName(),
+        'vid' => $term->bundle(),
+      ]);
     }
-  };
-})(jQuery, Drupal);
+    return new JsonResponse(['status' => 'error', 'message' => 'Term not found'], 404);
+  }
+}
 
-
+-------------------
 
 namespace Drupal\user_assignment_manager\Controller;
 
