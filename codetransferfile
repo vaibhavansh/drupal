@@ -1,5 +1,30 @@
 <?php
 
+(function ($, Drupal) {
+  Drupal.behaviors.assignmentAjax = {
+    attach: function (context, settings) {
+      $('#ajax-trigger', context).once('assignmentAjax').click(function () {
+        const data = {
+          param: $('#user-input').val()
+        };
+
+        $.ajax({
+          type: 'POST',
+          url: '/user-assignment/ajax-handler', // must match route path
+          data: data,
+          success: function (response) {
+            alert('Processed: ' + response.processed);
+          },
+          error: function () {
+            alert('Something went wrong!');
+          }
+        });
+      });
+    }
+  };
+})(jQuery, Drupal);
+
+
 /**
  * @file
  * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
