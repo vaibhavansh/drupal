@@ -1,4 +1,24 @@
 <?php
+async function getTaxonomyByNameAsync() {
+  const response = await fetch('/taxonomy/23');
+  if (!response.ok) {
+    throw new Error('Request failed');
+  }
+  const data = await response.json();
+  return data.name;
+}
+
+// Usage
+(async () => {
+  try {
+    const name = await getTaxonomyByNameAsync();
+    alert(name);
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+
 user_assignment_manager.taxonomy_term_name:
   path: '/taxonomy/{id}'
   defaults:
