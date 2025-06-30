@@ -1,3 +1,9 @@
+   // Ensure fields is an array and not undefined or null
+    if (!Array.isArray(fields) || fields.length === 0) {
+        console.error("addRequiredCss: Invalid or empty fields array.");
+        return;
+    }
+
 getTaxonomyByName(23, function(name) {
   alert(name); // this will correctly show the taxonomy name
 });
