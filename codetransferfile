@@ -1,3 +1,19 @@
+taxonomy_tools.create_terms:
+  path: '/taxonomy-tools/create'
+  defaults:
+    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::createTerms'
+    _title: 'Create Taxonomy Terms'
+  requirements:
+    _permission: 'administer taxonomy'
+
+taxonomy_tools.delete_terms:
+  path: '/taxonomy-tools/delete'
+  defaults:
+    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::deleteTerms'
+    _title: 'Delete Taxonomy Terms'
+  requirements:
+    _permission: 'administer taxonomy'
+
 <?php
 
 namespace Drupal\taxonomy_tools\Controller;
