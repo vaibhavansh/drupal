@@ -1,3 +1,73 @@
+<?php
+
+namespace Drupal\taxonomy_tools\Controller;
+
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+
+class TaxonomyToolsController extends ControllerBase {
+
+  public function createVocabs() {
+    // Array of vocabularies: machine name => label
+    $vocabs_to_create = [
+      'course' => 'Course',
+      'stream' => 'Stream',
+    ];
+
+    $created = [];
+    foreach ($vocabs_to_create as $machine_name => $label) {
+      if (!Vocabulary::load($machine_name)) {
+        $vocab = Vocabulary::create([
+          'vid' => $machine_name,
+          'description' => 'Created programmatically',
+          'name' => $label,
+        ]);
+        $vocab->save();
+        $created[] = $label;
+      }
+    }
+
+    // ✅ Add field to "stream" vocabulary
+    $field_name = 'field_reference_course';
+
+    // Check if field storage exists (site-wide definition)
+    if (!FieldStorageConfig::loadByName('taxonomy_term', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'taxonomy_term',
+        'type' => 'entity_reference',
+        'settings' => [
+          'target_type' => 'taxonomy_term',
+        ],
+        'cardinality' => -1, // unlimited
+      ])->save();
+    }
+
+    // Check if field is attached to "stream" bundle
+    if (!FieldConfig::loadByName('taxonomy_term', 'stream', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'stream',
+        'label' => 'Reference Course',
+        'settings' => [
+          'handler' => 'default',
+          'handler_settings' => [
+            'target_bundles' => ['course' => 'course'],
+          ],
+        ],
+      ])->save();
+    }
+
+    return [
+      '#markup' => 'Created vocabularies: ' . implode(', ', $created) . ' and added field "Reference Course" to Stream vocabulary.',
+    ];
+  }
+}
+
+
 taxonomy_tools.create_vocabs:
   path: '/taxonomy-tools/create-vocab'
   defaults:
