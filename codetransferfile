@@ -1,390 +1,63 @@
-   // Ensure fields is an array and not undefined or null
-    if (!Array.isArray(fields) || fields.length === 0) {
-        console.error("addRequiredCss: Invalid or empty fields array.");
-        return;
-    }
-
-getTaxonomyByName(23, function(name) {
-  alert(name); // this will correctly show the taxonomy name
-});
-
-function getTaxonomyByName(id, callback) {
-  $.ajax({
-    url: '/taxonomy/' + id, // Replace with your route
-    type: 'GET',
-    success: function(response) {
-      callback(response.name);
-    },
-    error: function(xhr) {
-      console.error('Error:', xhr.responseJSON.message);
-      callback(null);
-    }
-  });
-}
-****************
-function getTaxonomyByName() {
-  $.ajax({
-    url: '/taxonomy/23',
-    method: 'GET',
-    dataType: 'json',
-    success: function(response) {
-      console.log('Taxonomy name:', response.name);
-      // You can use response.name as needed here
-    },
-    error: function(xhr, status, error) {
-      console.error('Error fetching taxonomy:', error);
-    }
-  });
-}
-
-
-
-
 <?php
-async function getTaxonomyByNameAsync() {
-  const response = await fetch('/taxonomy/23');
-  if (!response.ok) {
-    throw new Error('Request failed');
-  }
-  const data = await response.json();
-  return data.name;
-}
 
-// Usage
-(async () => {
-  try {
-    const name = await getTaxonomyByNameAsync();
-    alert(name);
-  } catch (error) {
-    console.error(error);
-  }
-})();
+namespace Drupal\taxonomy_tools\Controller;
 
-
-user_assignment_manager.taxonomy_term_name:
-  path: '/taxonomy/{id}'
-  defaults:
-    _controller: '\Drupal\user_assignment_manager\Controller\TaxonomyAjaxController::getTermName'
-    _title: 'Get Taxonomy Name'
-  requirements:
-    _permission: 'access content'
-    id: \d+  # Only allow numeric IDs
-  methods: [GET]
-$.ajax({
-  url: '/taxonomy/23', // Replace 23 with the taxonomy term ID you want
-  type: 'GET',
-  success: function(response) {
-    console.log('Taxonomy Name:', response.name);
-  },
-  error: function(xhr) {
-    console.error('Error:', xhr.responseJSON.message);
-  }
-});
-
-
-
-namespace Drupal\user_assignment_manager\Controller;
-
-use Drupal\taxonomy\Entity\Term;
-use Symfony\Component\HttpFoundation\JsonResponse;
-
-class TaxonomyAjaxController {
-
-  /**
-   * Returns taxonomy term name by ID.
-   *
-   * @param int $id
-   *   The taxonomy term ID.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   The JSON response containing the term name.
-   */
-  public function getTermName($id) {
-    $term = Term::load($id);
-    if ($term) {
-      return new JsonResponse([
-        'status' => 'success',
-        'name' => $term->getName(),
-        'vid' => $term->bundle(),
-      ]);
-    }
-    return new JsonResponse(['status' => 'error', 'message' => 'Term not found'], 404);
-  }
-}
-
--------------------
-
-namespace Drupal\user_assignment_manager\Controller;
-
-use Drupal\taxonomy\Entity\Term;
-use Symfony\Component\HttpFoundation\JsonResponse;
-
-class TaxonomyAjaxController {
-
-  /**
-   * Returns taxonomy term name by ID.
-   *
-   * @param int $id
-   *   The taxonomy term ID.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   The JSON response containing the term name.
-   */
-  public function getTermName($id) {
-    $term = Term::load($id);
-    if ($term) {
-      return new JsonResponse([
-        'status' => 'success',
-        'name' => $term->getName(),
-        'vid' => $term->bundle(),
-      ]);
-    }
-    return new JsonResponse(['status' => 'error', 'message' => 'Term not found'], 404);
-  }
-}
-
-$.ajax({
-  url: '/taxonomy/23', // Replace 23 with the taxonomy term ID you want
-  type: 'GET',
-  success: function(response) {
-    console.log('Taxonomy Name:', response.name);
-  },
-  error: function(xhr) {
-    console.error('Error:', xhr.responseJSON.message);
-  }
-});
-
-
-/**
- * @file
- * Contains \Drupal\user_assignment_manager\Controller\UserAssignmentController.
- *
- * Provides functionality to assign beneficiaries to volunteers using
- * single or round-robin assignment methods and updates related nodes.
- *
- * @author Vaibhav Bargal
- * @date 2025-06-12
- */
-
-namespace Drupal\user_assignment_manager\Controller;
-
-use Drupal;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Url;
-use Drupal\node\Entity\Node;
-use Drupal\user\Entity\User;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Drupal\taxonomy\Entity\Term;
 
-/**
- * Class UserAssignmentController.
- *
- * Handles assigning beneficiaries to volunteers/CSRs and updates the relevant nodes.
- */
-class UserAssignmentController extends ControllerBase {
+class TaxonomyToolsController extends ControllerBase {
 
   /**
-   * The messenger service.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
+   * Create taxonomy terms.
    */
-  protected $messenger;
+  public function createTerms() {
+    // Array of term names to create in vocabulary "courses"
+    $terms_to_create = ['Diploma', 'Engineering', 'Medicine'];
+    $vocabulary = 'courses'; // ⚠️ replace with your actual vocabulary machine name
 
-  /**
-   * Constructs a new UserAssignmentController object.
-   *
-   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
-   *   The messenger service.
-   */
-  public function __construct(MessengerInterface $messenger) {
-    $this->messenger = $messenger;
-  }
-
-  /**
-   * Assigns multiple beneficiaries to a single assignee (CSR or volunteer).
-   *
-   * This function is triggered via a POST request.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object containing 'selected_users', 'assignee_uid', and 'steps'.
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect response to the given step route.
-   */
-  public function singleAssignment(Request $request) {
-    $selected_uids = $request->request->get('selected_users');
-    $assignee_uid = $request->request->get('assignee_uid');
-    $steps = $request->request->get('steps');
-
-    if (empty($selected_uids) || empty($assignee_uid)) {
-      $this->messenger->addError('Please select users and an assignee.');
-      return new RedirectResponse(Url::fromRoute($steps)->toString());
-    }
-
-    $assigner_uid = $this->currentUser()->id();
-
-    foreach ($selected_uids as $beneficiary_uid) {
-      $nodes = \Drupal::entityTypeManager()
-        ->getStorage('node')
-        ->loadByProperties([
-          'type' => 'beneficiary_application_status',
-          'field_beneficiary_uid' => $beneficiary_uid,
+    $created = [];
+    foreach ($terms_to_create as $name) {
+      // Check if term already exists
+      $query = \Drupal::entityQuery('taxonomy_term')
+        ->condition('vid', $vocabulary)
+        ->condition('name', $name);
+      $tids = $query->execute();
+      if (empty($tids)) {
+        $term = Term::create([
+          'name' => $name,
+          'vid' => $vocabulary,
         ]);
-
-      foreach ($nodes as $node) {
-        $node->set('field_assignee_uid', $assignee_uid);
-        $node->set('field_assigner_uid', $assigner_uid);
-        $node->save();
+        $term->save();
+        $created[] = $name;
       }
     }
 
-    $this->messenger->addStatus($this->t('@count beneficiaries assigned successfully.', ['@count' => count($selected_uids)]));
-    return new RedirectResponse(Url::fromRoute($steps)->toString());
+    return [
+      '#markup' => 'Created terms: ' . implode(', ', $created),
+    ];
   }
 
   /**
-   * Automatically assigns beneficiaries to volunteers using round-robin.
-   *
-   * @param string|null $steps
-   *   The step route to redirect to after completion.
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
-   *   Redirect or render array.
+   * Delete taxonomy terms.
    */
-  public function assignVolunteer($steps = NULL) {
-    $user = $this->currentUser();
+  public function deleteTerms() {
+    $terms_to_delete = ['Diploma', 'Engineering', 'Medicine'];
+    $vocabulary = 'courses'; // ⚠️ replace with your actual vocabulary machine name
 
-    if (!($user->hasRole('administrator') || $user->hasRole('csr'))) {
-      throw new AccessDeniedHttpException('Access denied.');
-    }
+    $query = \Drupal::entityQuery('taxonomy_term')
+      ->condition('vid', $vocabulary)
+      ->condition('name', $terms_to_delete, 'IN');
+    $tids = $query->execute();
 
-    $query = <<<SQL
-SELECT u.uid AS uid, ufqid.field_unique_id_value AS UniqueID, u.name AS username, u.mail AS email, 'ss' AS benificaiaryname,
-  n.nid, n.title, s.field_form_status_value, bu.field_benificiary_uid_value
-FROM node_field_data AS n
-  INNER JOIN node__field_form_status AS s ON n.nid = s.entity_id
-  INNER JOIN node__field_benificiary_uid AS bu ON n.nid = bu.entity_id
-  INNER JOIN users_field_data AS u ON u.uid = bu.field_benificiary_uid_value
-  LEFT JOIN user__roles AS r ON r.entity_id = u.uid
-  LEFT JOIN user__field_unique_id AS ufqid ON ufqid.entity_id = u.uid
-WHERE n.type = 'beneficiary_application_status' AND s.field_form_status_value = 1
-SQL;
-
-    $results = \Drupal::database()->query($query)->fetchAll(\PDO::FETCH_ASSOC);
-    $volunteers_users = $this->getUsersByRole(['volunteer']);
-    $volunteers = [];
-
-    if (empty($volunteers_users)) {
-      return ['#markup' => 'No volunteers found.'];
-    }
-
-    if (in_array($steps, ['2', '4'])) {
-      foreach ($volunteers_users as $uid => $volunteer) {
-        if ($volunteer->get('field_csr_member')->value == 1) {
-          $volunteers[$uid] = $volunteer;
-        }
-      }
-    }
-    elseif ($steps === '3') {
-      $volunteers = $volunteers_users;
-    }
-
-    $beneficiaries = [];
-    foreach ($results as $row) {
-      $beneficiaries[$row['uid']] = $row['nid'];
-    }
-
-    $volunteers = array_values(array_filter($volunteers));
-    $assigned = $this->assignBeneficiariesToVolunteers($beneficiaries, $volunteers);
-    $assigner_uid = $this->currentUser()->id();
-
-    foreach ($assigned as $volunteer_uid => $nid_uid_pairs) {
-      foreach ($nid_uid_pairs as $nid_uid) {
-        [$nid, $uid] = explode('_', $nid_uid);
-        $this->updateCustomNode((int) $nid, $volunteer_uid, $assigner_uid);
+    if ($tids) {
+      $terms = Term::loadMultiple($tids);
+      foreach ($terms as $term) {
+        $term->delete();
       }
     }
 
-    $this->messenger->addStatus($this->t('@count beneficiaries assigned successfully.', ['@count' => count($beneficiaries)]));
-    return new RedirectResponse(Url::fromRoute('stepers')->toString());
+    return [
+      '#markup' => 'Deleted terms: ' . implode(', ', $terms_to_delete),
+    ];
   }
-
-  /**
-   * Retrieves active users for specific roles.
-   *
-   * @param array $role_ids
-   *   Role machine names.
-   *
-   * @return \Drupal\user\Entity\User[]
-   *   Loaded user entities.
-   */
-  private function getUsersByRole(array $role_ids): array {
-    $user_ids = \Drupal::entityQuery('user')
-      ->condition('status', 1)
-      ->condition('roles', $role_ids, 'IN')
-      ->accessCheck(FALSE)
-      ->execute();
-
-    return User::loadMultiple($user_ids);
-  }
-
-  /**
-   * Distributes beneficiaries to volunteers using round-robin logic.
-   *
-   * @param array $beneficiaries
-   *   Associative array of [uid => nid].
-   * @param \Drupal\user\Entity\User[] $volunteers
-   *   Array of volunteer user entities.
-   *
-   * @return array
-   *   Assignment results as [volunteer_uid => [nid_uid_string, ...]].
-   */
-  private function assignBeneficiariesToVolunteers(array $beneficiaries, array $volunteers): array {
-    $assignments = [];
-    $volunteerCount = count($volunteers);
-    $i = 0;
-
-    foreach ($beneficiaries as $uid => $nid) {
-      $volunteer = $volunteers[$i % $volunteerCount];
-      $assignments[$volunteer->id()][] = "{$nid}_{$uid}";
-      $i++;
-    }
-
-    return $assignments;
-  }
-
-  /**
-   * Updates a beneficiary node with assignment information.
-   *
-   * @param int $nid
-   *   Node ID.
-   * @param int|null $assignee_uid
-   *   Assigned volunteer UID.
-   * @param int|null $assigner_uid
-   *   Assigner UID.
-   *
-   * @return bool
-   *   TRUE if update succeeded, FALSE otherwise.
-   */
-  private function updateCustomNode(int $nid, $assignee_uid = NULL, $assigner_uid = NULL): bool {
-    $node = Node::load($nid);
-
-    if (!$node || $node->bundle() !== 'beneficiary_application_status') {
-      return FALSE;
-    }
-
-    if ($assignee_uid !== NULL) {
-      $node->set('field_assignee_uid', $assignee_uid);
-    }
-
-    if ($assigner_uid !== NULL) {
-      $node->set('field_assigner_uid', $assigner_uid);
-    }
-
-    $node->save();
-    return TRUE;
-  }
-
 }
