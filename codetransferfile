@@ -1,79 +1,76 @@
-taxonomy_tools.create_terms:
-  path: '/taxonomy-tools/create'
+taxonomy_tools.create_vocabs:
+  path: '/taxonomy-tools/create-vocab'
   defaults:
-    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::createTerms'
-    _title: 'Create Taxonomy Terms'
+    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::createVocabs'
+    _title: 'Create Vocabularies'
   requirements:
     _permission: 'administer taxonomy'
 
-taxonomy_tools.delete_terms:
-  path: '/taxonomy-tools/delete'
+taxonomy_tools.delete_vocabs:
+  path: '/taxonomy-tools/delete-vocab'
   defaults:
-    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::deleteTerms'
-    _title: 'Delete Taxonomy Terms'
+    _controller: '\Drupal\taxonomy_tools\Controller\TaxonomyToolsController::deleteVocabs'
+    _title: 'Delete Vocabularies'
   requirements:
     _permission: 'administer taxonomy'
+
 
 <?php
 
 namespace Drupal\taxonomy_tools\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 class TaxonomyToolsController extends ControllerBase {
 
   /**
-   * Create taxonomy terms.
+   * Create vocabularies.
    */
-  public function createTerms() {
-    // Array of term names to create in vocabulary "courses"
-    $terms_to_create = ['Diploma', 'Engineering', 'Medicine'];
-    $vocabulary = 'courses'; // ⚠️ replace with your actual vocabulary machine name
+  public function createVocabs() {
+    // Array of vocabularies: machine name => label
+    $vocabs_to_create = [
+      'diploma' => 'Diploma',
+      'engineering' => 'Engineering',
+      'medicine' => 'Medicine',
+    ];
 
     $created = [];
-    foreach ($terms_to_create as $name) {
-      // Check if term already exists
-      $query = \Drupal::entityQuery('taxonomy_term')
-        ->condition('vid', $vocabulary)
-        ->condition('name', $name);
-      $tids = $query->execute();
-      if (empty($tids)) {
-        $term = Term::create([
-          'name' => $name,
-          'vid' => $vocabulary,
+    foreach ($vocabs_to_create as $machine_name => $label) {
+      // Check if vocabulary already exists
+      if (!Vocabulary::load($machine_name)) {
+        $vocab = Vocabulary::create([
+          'vid' => $machine_name,
+          'description' => 'Created programmatically',
+          'name' => $label,
         ]);
-        $term->save();
-        $created[] = $name;
+        $vocab->save();
+        $created[] = $label;
       }
     }
 
     return [
-      '#markup' => 'Created terms: ' . implode(', ', $created),
+      '#markup' => 'Created vocabularies: ' . implode(', ', $created),
     ];
   }
 
   /**
-   * Delete taxonomy terms.
+   * Delete vocabularies.
    */
-  public function deleteTerms() {
-    $terms_to_delete = ['Diploma', 'Engineering', 'Medicine'];
-    $vocabulary = 'courses'; // ⚠️ replace with your actual vocabulary machine name
+  public function deleteVocabs() {
+    $vocabs_to_delete = ['diploma', 'engineering', 'medicine'];
 
-    $query = \Drupal::entityQuery('taxonomy_term')
-      ->condition('vid', $vocabulary)
-      ->condition('name', $terms_to_delete, 'IN');
-    $tids = $query->execute();
-
-    if ($tids) {
-      $terms = Term::loadMultiple($tids);
-      foreach ($terms as $term) {
-        $term->delete();
+    $deleted = [];
+    foreach ($vocabs_to_delete as $machine_name) {
+      if ($vocab = Vocabulary::load($machine_name)) {
+        $vocab->delete();
+        $deleted[] = $machine_name;
       }
     }
 
     return [
-      '#markup' => 'Deleted terms: ' . implode(', ', $terms_to_delete),
+      '#markup' => 'Deleted vocabularies: ' . implode(', ', $deleted),
     ];
   }
 }
+
