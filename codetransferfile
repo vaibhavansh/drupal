@@ -1,3 +1,31 @@
+async function getTaxonomyByName(id) {
+  if (id == null) {
+    return false;
+  }
+
+  const baseUrl = getBaseUrl();
+  console.log("Base URL academic:", baseUrl);
+
+  // Build dynamic taxonomy URL
+  const taxonomyUrl = baseUrl + "taxonomy/" + id;
+  console.log("Taxonomy URL academic:", taxonomyUrl);
+
+  try {
+    const response = await fetch(taxonomyUrl);
+
+    if (!response.ok) {
+      console.error("Fetch error, status:", response.status);
+      throw new Error('Request failed');
+    }
+
+    const data = await response.json();
+    return data.name;
+  } catch (err) {
+    console.error("Error fetching taxonomy:", err);
+    throw err;  // re-throw or handle as needed
+  }
+}
+
 function getBaseUrl() {
   const { protocol, hostname, port } = window.location;
 
