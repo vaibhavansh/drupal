@@ -1,3 +1,22 @@
+(function($){
+  $(document).ready(function(){
+    $('#edit-next').on('click', function(e){
+      // Optional: show loader, disable button, etc.
+
+      // Add delay (e.g., 500ms)
+      setTimeout(function(){
+        // Remove required attributes if needed
+        $('#field1, #field2').removeAttr('required');
+
+        // Do custom validation if you want
+
+        // Finally, submit the form manually
+        $('#edit-next').closest('form')[0].submit();
+      }, 500);
+    });
+  });
+})(jQuery);
+
 var course_id = $('#edit-field-course-applied-for').val();
 var courseStream_id = $('#edit-field-stream').val();
 
