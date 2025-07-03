@@ -1,3 +1,26 @@
+function getTaxonomyByName(id) {
+  if (id == null) {
+    return $.Deferred().reject('Invalid ID').promise();
+  }
+
+  var baseUrl = getBaseUrl();
+  console.log("Base URL academic:", baseUrl);
+
+  var taxonomyUrl = baseUrl + "taxonomy/" + id;
+  console.log("Taxonomy URL academic:", taxonomyUrl);
+
+  return $.ajax({
+    url: taxonomyUrl,
+    method: 'GET',
+    dataType: 'json'
+  }).then(function (data) {
+    return data.name;
+  }).fail(function (xhr, status, error) {
+    console.error("Error fetching taxonomy:", status, error);
+    return null;
+  });
+}
+
 function getBaseUrl() {
   const { protocol, hostname, port, pathname } = window.location;
 
