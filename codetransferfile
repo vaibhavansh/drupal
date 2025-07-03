@@ -1,3 +1,26 @@
+$form['custom_button'] = [
+  '#type' => 'button',
+  '#value' => t('Save'),
+  '#attributes' => [
+    'class' => [
+      'outline-purple',
+      'mt-4',
+      'academic_save',
+      'button',
+      'js-form-submit',
+      'form-submit',
+      'btn',
+      'btn-primary',
+      'form-control',
+    ],
+    'style' => 'display: none;',
+    'data-drupal-selector' => 'edit-next',
+    'id' => 'edit-next',
+    'name' => 'op',
+    'aria-invalid' => 'false',
+  ],
+];
+
 (function($){
   $(document).ready(function(){
     $('#edit-next').on('click', function(e){
