@@ -1,3 +1,26 @@
+var course_id = $('#edit-field-course-applied-for').val();
+var courseStream_id = $('#edit-field-stream').val();
+
+// call twice
+var coursePromise = getTaxonomyByName(course_id);
+var streamPromise = getTaxonomyByName(courseStream_id);
+
+// wait for both
+$.when(coursePromise, streamPromise).done(function(courseName, streamName) {
+  // courseName and streamName contain the returned names
+  console.log("Course name:", courseName);
+  console.log("Stream name:", streamName);
+
+  if (courseName == "Engineering") {
+    // do something
+  }
+  if (streamName == "Mechanical") {
+    // do something else
+  }
+}).fail(function(error) {
+  console.error("Error fetching taxonomy names:", error);
+});
+
 getTaxonomyByName(23).then(function(name) {
   alert(name);  // shows the name directly
   console.log(name); // also logs the name
