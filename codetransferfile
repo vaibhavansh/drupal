@@ -1,3 +1,36 @@
+jQuery(document).ready(function () {
+  $ = jQuery;
+
+  // Only numbers validation
+  $('#edit-aadhar-no, #edit-mobile-no-1, #edit-mobile-no-2, #edit-parent-guardian-no, #edit-pin-code-2, #edit-pin-code')
+    .on('input', function () {
+      // Remove previous number error for this field only
+      $(this).next('.error-numeric').remove();
+
+      let value = $(this).val();
+
+      // Check if input contains non-numeric characters
+      if (!/^\d*$/.test(value)) {
+        $(this).after('<div class="error-numeric">Only numbers are allowed!</div>');
+        $(this).val(value.replace(/\D/g, ''));
+      }
+    });
+
+  // Parent/guardian number must not be same as primary mobile
+  $('#edit-parent-guardian-no').on('blur', function () {
+    // Remove previous guardian number error
+    $(this).next('.error-guardian-match').remove();
+
+    const parentNo = $(this).val();
+    const mobile1 = $('#edit-mobile-no-1').val();
+    const mobile2 = $('#edit-mobile-no-2').val();
+
+    if (parentNo === mobile1) {
+      $(this).after('<div class="error-guardian-match">Parent/Guardian number should not be the same as Primary Mobile Number.</div>');
+    }
+  });
+});
+
 $form['custom_button'] = [
   '#type' => 'button',
   '#value' => t('Save'),
