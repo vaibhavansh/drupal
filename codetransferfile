@@ -1,3 +1,8 @@
+getTaxonomyByName(23).then(function(name) {
+  alert(name);  // shows the name directly
+  console.log(name); // also logs the name
+});
+
 function getTaxonomyByName(id) {
   if (id == null) {
     return $.Deferred().reject('Invalid ID').promise();
