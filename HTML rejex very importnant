@@ -1,4 +1,7 @@
 Regex of input
 
-1) For Percentage 1 to 100 , 99.9 
+1) For Percentage 1 to 100 , 99.9, Disabled start from zero
 Answer - 'oninput' => 'this.value = this.value.replace(/[^0-9.]/g, "").replace(/^0(?![\.])/g, "").replace(/(\..*)\./g, "$1").replace(/^(1000|\d{4,})/, "").replace(/^99(\.[0-9]{2})?$/, "99$1").replace(/^(?=\d)([1-9][0-9]?|99(\.[0-9]{1,2})?)$/, "$1"); if(parseFloat(this.value) > 100) this.value = "100";'
+
+2) Only String Value
+Answer - 'oninput' => 'this.value = this.value.replace(/[^a-zA-Z ]/g, "");'
