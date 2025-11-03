@@ -7,5 +7,6 @@ Answer - 'oninput' => 'this.value = this.value.replace(/[^0-9.]/g, "").replace(/
 Answer - 'oninput' => 'this.value = this.value.replace(/[^a-zA-Z ]/g, "");'
 <textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);if(w.length>100)this.value=w.slice(0,100).join(' ');this.nextElementSibling.textContent=w.length+'/100 words';"></textarea><p style='margin:4px 0;color:gray'></p>
 
-<p id="wordCountMsg" style="font-size:14px; color:gray; margin-top:4px;"></p>
+<textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);let p=this.nextElementSibling; if(w.length>100){this.value=w.slice(0,100).join(' ');p.innerHTML='⚠️ Limit reached (100 words max)';p.style.color='red';}else{p.innerHTML=w.length+'/100 words';p.style.color='gray';}"></textarea><p style='margin:4px 0;color:gray'></p>
+
 
