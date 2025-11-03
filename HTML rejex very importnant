@@ -5,3 +5,24 @@ Answer - 'oninput' => 'this.value = this.value.replace(/[^0-9.]/g, "").replace(/
 
 2) Only String Value
 Answer - 'oninput' => 'this.value = this.value.replace(/[^a-zA-Z ]/g, "");'
+
+<textarea id="comment" rows="6" cols="60" 
+  placeholder="Write your comment..." 
+  oninput="
+    const maxWords = 100;
+    const words = this.value.trim().split(/\s+/).filter(Boolean);
+    const msg = document.getElementById('wordCountMsg');
+
+    if (words.length > maxWords) {
+      this.value = words.slice(0, maxWords).join(' ');
+      msg.textContent = `You can only enter up to ${maxWords} words.`;
+      msg.style.color = 'red';
+    } else {
+      msg.textContent = `${words.length}/${maxWords} words`;
+      msg.style.color = 'gray';
+    }
+  ">
+</textarea>
+
+<p id="wordCountMsg" style="font-size:14px; color:gray; margin-top:4px;"></p>
+
