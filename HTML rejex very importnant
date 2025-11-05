@@ -8,5 +8,5 @@ Answer - 'oninput' => 'this.value = this.value.replace(/[^a-zA-Z ]/g, "");'
 <textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);if(w.length>100)this.value=w.slice(0,100).join(' ');this.nextElementSibling.textContent=w.length+'/100 words';"></textarea><p style='margin:4px 0;color:gray'></p>
 
 <textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);let p=this.nextElementSibling; if(w.length>100){this.value=w.slice(0,100).join(' ');p.innerHTML='⚠️ Limit reached (100 words max)';p.style.color='red';}else{p.innerHTML=w.length+'/100 words';p.style.color='gray';}"></textarea><p style='margin:4px 0;color:gray'></p>
-
+<textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);let p=this.nextElementSibling;if(w.length<100){p.innerHTML='⚠️ Minimum 100 words required ('+w.length+'/100)';p.style.color='red';}else if(w.length>250){this.value=w.slice(0,250).join(' ');p.innerHTML='⚠️ Maximum 250 words allowed';p.style.color='red';}else{p.innerHTML=w.length+'/250 words';p.style.color='gray';}"></textarea><p style='margin:4px 0;color:gray'></p>
 
