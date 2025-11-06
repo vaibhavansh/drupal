@@ -5,8 +5,97 @@ Answer - 'oninput' => 'this.value = this.value.replace(/[^0-9.]/g, "").replace(/
 
 2) Only String Value
 Answer - 'oninput' => 'this.value = this.value.replace(/[^a-zA-Z ]/g, "");'
-<textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);if(w.length>100)this.value=w.slice(0,100).join(' ');this.nextElementSibling.textContent=w.length+'/100 words';"></textarea><p style='margin:4px 0;color:gray'></p>
 
+3) Textarea word limit validation 
+<textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);if(w.length>100)this.value=w.slice(0,100).join(' ');this.nextElementSibling.textContent=w.length+'/100 words';"></textarea><p style='margin:4px 0;color:gray'></p>
 <textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);let p=this.nextElementSibling; if(w.length>100){this.value=w.slice(0,100).join(' ');p.innerHTML='⚠️ Limit reached (100 words max)';p.style.color='red';}else{p.innerHTML=w.length+'/100 words';p.style.color='gray';}"></textarea><p style='margin:4px 0;color:gray'></p>
-<textarea oninput="let w=this.value.trim().split(/\s+/).filter(Boolean);let p=this.nextElementSibling;if(w.length<100){p.innerHTML='⚠️ Minimum 100 words required ('+w.length+'/100)';p.style.color='red';}else if(w.length>250){this.value=w.slice(0,250).join(' ');p.innerHTML='⚠️ Maximum 250 words allowed';p.style.color='red';}else{p.innerHTML=w.length+'/250 words';p.style.color='gray';}"></textarea><p style='margin:4px 0;color:gray'></p>
+a) $form['questions']['comment'] = [
+  '#type' => 'textarea',
+  '#title' => $this->t('Comment (Note: Kindly provide a detailed comment with a minimum of 100 words to share your complete feedback.)'),
+  '#attributes' => [
+    'maxlength' => '1000',
+    'oninput' => "
+      let w = this.value.trim().split(/\\s+/).filter(Boolean);
+      let p = this.parentElement.parentElement.nextElementSibling;
+      let submitBtn = document.querySelector('form button[type=submit]'); // Adjust selector if needed
+
+      if (w.length < 100) {
+        p.innerHTML = '⚠️ Minimum 100 words required (' + w.length + '/100)';
+        p.style.color = 'red';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        this.setCustomValidity('Minimum 100 words required');
+        if (submitBtn) submitBtn.disabled = true; // ❗ Should disable until valid
+      } 
+      else if (w.length > 250) {
+        this.value = w.slice(0, 250).join(' ');
+        p.innerHTML = '⚠️ Maximum 250 words allowed';
+        p.style.color = 'red';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        this.setCustomValidity('Maximum 250 words allowed');
+        if (submitBtn) submitBtn.disabled = true;
+      } 
+      else {
+        p.innerHTML = w.length + '/250 words';
+        p.style.color = 'gray';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        this.setCustomValidity('');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    ",
+  ],
+  '#suffix' => "<p style='margin:4px 0;color:gray;' class='textarea-errormessage'></p>", // ✅ fixed missing quote
+  '#default_value' => $comment_value,
+  '#required' => TRUE,
+];
+
+b) this is showing only validation message but not validation required in this 
+$form['questions']['comment'] = [
+  '#type' => 'textarea',
+  '#title' => $this->t('Comment (Note: Kindly provide a detailed comment with a minimum of 100 words to share your complete feedback.)'),
+  '#attributes' => [
+    'maxlength' => '2000', // Optional: prevents excessive input
+    'oninput' => "
+      let w = this.value.trim().split(/\\s+/).filter(Boolean);
+      let p = this.parentElement.parentElement.nextElementSibling;
+      let submitBtn = document.querySelector('form button[type=submit]'); // Adjust selector if needed
+
+      if (w.length < 100) {
+        p.innerHTML = '⚠️ Minimum 100 words required (' + w.length + '/100)';
+        p.style.color = 'red';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        if (submitBtn) submitBtn.disabled = true;
+
+      } else if (w.length > 250) {
+        this.value = w.slice(0, 250).join(' ');
+        p.innerHTML = '⚠️ Maximum 250 words allowed';
+        p.style.color = 'red';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        if (submitBtn) submitBtn.disabled = true;
+
+      } else {
+        p.innerHTML = w.length + '/250 words';
+        p.style.color = 'gray';
+        p.style.fontSize = '14px';
+        p.style.fontWeight = '500';
+        p.style.marginTop = '6px';
+        this.setCustomValidity('');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    ",
+  ],
+  '#suffix' => "<p style='margin:4px 0;color:gray;' class='textarea-errormessage'></p>",
+  '#default_value' => $comment_value,
+  '#required' => TRUE,
+];
+
 
